@@ -118,6 +118,9 @@
         const particlesContainer = document.getElementById('particles-container');
 
         let currentQuote = "";
+        
+        // "Мешок" с фразами. Будем удалять отсюда фразы по мере показа.
+        let quotePool = []; 
 
         function initParticles() {
             for (let i = 0; i < 20; i++) {
@@ -133,13 +136,32 @@
             }
         }
 
-        function getRandomQuote(exclude) {
-            let newQuote = exclude;
-            while (newQuote === exclude) {
-                const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
-                newQuote = MOTIVATIONAL_QUOTES[randomIndex];
+        // Умная функция получения цитаты (Bag System)
+        function getSmartQuote() {
+            // 1. Если мешок пуст, наполняем его заново всеми фразами
+            if (quotePool.length === 0) {
+                quotePool = [...MOTIVATIONAL_QUOTES];
             }
-            return newQuote;
+
+            // 2. Выбираем случайный индекс из оставшихся
+            let randomIndex = Math.floor(Math.random() * quotePool.length);
+            
+            // Защита от повтора на стыке циклов:
+            // Если мы только что наполнили мешок заново (новый цикл),
+            // и случайно выбрали ту же фразу, которая сейчас на экране...
+            if (quotePool.length === MOTIVATIONAL_QUOTES.length && quotePool[randomIndex] === currentQuote) {
+                // ...просто берем следующую (или предыдущую), чтобы не повторяться подряд.
+                // Оператор % (остаток от деления) зацикливает индекс, чтобы не выйти за границы.
+                randomIndex = (randomIndex + 1) % quotePool.length;
+            }
+
+            // 3. Достаем фразу
+            const selectedQuote = quotePool[randomIndex];
+
+            // 4. Удаляем эту фразу из мешка (splice изменяет массив quotePool)
+            quotePool.splice(randomIndex, 1);
+
+            return selectedQuote;
         }
 
         function updateQuote(text) {
@@ -175,7 +197,8 @@
 
             // Ждем завершения CSS-анимации исчезновения
             quoteWrapper.addEventListener('transitionend', function() {
-                currentQuote = getRandomQuote(currentQuote);
+                // Используем новую функцию
+                currentQuote = getSmartQuote();
                 updateQuote(currentQuote);
                 
                 magicBtn.disabled = false;
@@ -185,7 +208,9 @@
         }
 
         initParticles();
-        currentQuote = getRandomQuote("");
+        
+        // При первой загрузке тоже используем умный выбор
+        currentQuote = getSmartQuote();
         
         // 1. Устанавливаем текст сразу, чтобы элемент занял правильную высоту
         quoteText.textContent = currentQuote;
