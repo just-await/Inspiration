@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotoGen Offline</title>
+    
+    <!-- Подключение внешних стилей -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-black text-white selection:bg-purple-500 selection:text-white overflow-hidden">
+
+    <!-- Контейнер для частиц -->
+    <div id="particles-container" class="absolute inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- 
+        Основной контейнер.
+        Используем flex-col.
+        justify-start + pt-[25vh]: Это смещает начало контента на 25% высоты экрана вниз.
+        Таким образом, центр контента оказывается ВИЗУАЛЬНО НИЖЕ середины экрана.
+    -->
+    <div class="relative z-10 flex flex-col items-center justify-start w-full h-screen pt-[25vh] pb-10">
+        
+        <!-- 
+           Секция с цитатой.
+           w-full: На всю ширину.
+           max-w-[90vw]: Ограничение 90% ширины экрана (чтобы не липло к краям).
+           lg:max-w-7xl: На больших экранах еще шире.
+           mb-20: Отступ до кнопки.
+        -->
+        <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col justify-end items-center mb-20 min-h-[200px]">
+            <!-- 
+                ИЗМЕНЕНИЕ: Убраны классы 'transition-transform', 'duration-300', 'active:scale-[0.98]'.
+                Теперь вся анимация управляется исключительно через styles.css.
+            -->
+            <div id="quote-wrapper" class="relative text-center w-full px-2 initial-hidden cursor-pointer group select-none">
+                
+                <!-- Подсказка о копировании -->
+                <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-8 transition-colors duration-500 group-hover:text-white/60">
+                    нажми чтобы скопировать
+                </p>
+
+                <!-- 
+                   Текст цитаты.
+                   РЕДАКТИРОВАНИЕ РАЗМЕРА:
+                   text-3xl (мобильные)
+                   md:text-5xl (планшеты)
+                   lg:text-6xl (компьютеры)
+                   
+                   ИЗМЕНЕНИЕ: Убран градиент (text-transparent bg-clip-text ...).
+                   Теперь текст чисто белый (text-white).
+                -->
+                <h1 id="quote-text" class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl pb-6 break-words [text-wrap:balance]">
+                    <!-- Текст появится здесь -->
+                </h1>
+                
+                <!-- Декоративная линия -->
+                <div class="w-32 h-1.5 bg-white/20 mx-auto mt-2 rounded-full group-hover:bg-white/50 transition-colors duration-500"></div>
+            </div>
+        </div>
+
+        <!-- Секция с кнопкой -->
+        <div class="flex-shrink-0">
+            <button id="magic-btn" class="
+                group relative btn-shine bg-white text-black font-black text-lg md:text-xl tracking-wider uppercase py-6 px-14 rounded-full
+                transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+                hover:scale-105 active:scale-95
+                disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed
+                shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] active:shadow-[0_0_20px_rgba(255,255,255,0.1)]
+            ">
+                <!-- Свечение -->
+                <div class="absolute inset-0 rounded-full ring-2 ring-white/50 group-hover:ring-4 group-hover:ring-white/80 transition-all duration-700 opacity-0 group-hover:opacity-100 blur-sm"></div>
+                
+                <!-- 
+                    z-20: Подняли слой контента выше, чтобы анимация блеска (которая внутри кнопки) не перекрывала его.
+                -->
+                <span class="relative z-20 flex items-center gap-3">
+                    <!-- Лоадер -->
+                    <span id="btn-loader" class="hidden flex items-center gap-2">
+                        <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        ...
+                    </span>
+                    
+                    <!-- Текст кнопки -->
+                    <span id="btn-content" class="flex items-center gap-3">
+                        <span>Вдохновиться</span>
+                        <!-- 
+                            Иконка Звезды (Star).
+                            Заменена на стандартную 5-конечную звезду (solid/filled), так как предыдущая 4-конечная не понравилась пользователю.
+                            Используем fill="currentColor" чтобы она была закрашена цветом text-purple-600.
+                        -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-500 text-purple-600">
+                            <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </span>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Логика -->
+    <script type="module">
+        import { MOTIVATIONAL_QUOTES } from './constants.js';
+
+        const quoteWrapper = document.getElementById('quote-wrapper');
+        const quoteText = document.getElementById('quote-text');
+        const copyHint = document.getElementById('copy-hint'); 
+        const magicBtn = document.getElementById('magic-btn');
+        const btnLoader = document.getElementById('btn-loader');
+        const btnContent = document.getElementById('btn-content');
+        const particlesContainer = document.getElementById('particles-container');
+
+        let currentQuote = "";
+
+        function initParticles() {
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                const size = Math.random() * 5 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function getRandomQuote(exclude) {
+            let newQuote = exclude;
+            while (newQuote === exclude) {
+                const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+                newQuote = MOTIVATIONAL_QUOTES[randomIndex];
+            }
+            return newQuote;
+        }
+
+        function updateQuote(text) {
+            quoteText.textContent = text;
+            quoteWrapper.classList.remove('fade-out', 'initial-hidden');
+            quoteWrapper.classList.add('fade-in');
+            resetCopyHint();
+        }
+
+        function resetCopyHint() {
+            copyHint.textContent = "нажми чтобы скопировать";
+            copyHint.classList.remove('text-green-400', 'tracking-normal');
+            copyHint.classList.add('text-white/30', 'tracking-[0.3em]');
+        }
+
+        function handleCopy() {
+            if (!currentQuote) return;
+            navigator.clipboard.writeText(currentQuote).then(() => {
+                copyHint.textContent = "Скопировано!";
+                copyHint.classList.remove('text-white/30', 'tracking-[0.3em]');
+                copyHint.classList.add('text-green-400', 'tracking-widest');
+                setTimeout(resetCopyHint, 2000);
+            }).catch(err => console.error(err));
+        }
+
+        function handleGenerate() {
+            magicBtn.disabled = true;
+            btnContent.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+
+            quoteWrapper.classList.remove('fade-in');
+            quoteWrapper.classList.add('fade-out');
+
+            // Ждем завершения CSS-анимации исчезновения
+            quoteWrapper.addEventListener('transitionend', function() {
+                currentQuote = getRandomQuote(currentQuote);
+                updateQuote(currentQuote);
+                
+                magicBtn.disabled = false;
+                btnContent.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+            }, { once: true });
+        }
+
+        initParticles();
+        currentQuote = getRandomQuote("");
+        
+        // 1. Устанавливаем текст сразу, чтобы элемент занял правильную высоту
+        quoteText.textContent = currentQuote;
+
+        // 2. Добавляем небольшую задержку перед снятием класса скрытия.
+        setTimeout(() => {
+            updateQuote(currentQuote);
+        }, 100);
+
+        magicBtn.addEventListener('click', handleGenerate);
+        quoteWrapper.addEventListener('click', handleCopy); 
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+/* Импорт шрифта */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap');
+
+/* Базовые настройки */
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    overflow: hidden;
+    background-color: #0f172a;
+}
+
+/* --- Анимация кнопки (Блик) --- */
+@keyframes shine {
+    0% { left: -100%; }
+    20% { left: 100%; }
+    100% { left: 100%; }
+}
+
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg);
+    animation: shine 3s infinite;
+}
+
+/* --- Частицы на фоне --- */
+@keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+}
+
+.particle {
+    position: absolute;
+    bottom: -10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: float 15s linear infinite;
+}
+
+/* --- Анимации текста --- */
+
+/* 
+   Базовый элемент. 
+   Мы задаем transition-property здесь, чтобы браузер всегда знал, ЧТО анимировать.
+   Duration будет переопределяться классами ниже.
+*/
+#quote-wrapper {
+    /* Свойства по умолчанию */
+    opacity: 1;
+    transform: translateY(0);
+    
+    /* Свойства для анимации */
+    transition-property: opacity, transform;
+    will-change: opacity, transform;
+}
+
+/* 
+    Появление (вход) 
+    Здесь вы можете менять '2s' на любое время.
+*/
+.fade-in {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    transition-duration: 1s !important; /* ВРЕМЯ ПОЯВЛЕНИЯ */
+    transition-timing-function: ease-out !important;
+}
+
+/* 
+    Исчезновение (выход)
+    Здесь вы можете менять '1s' на любое время.
+*/
+.fade-out {
+    opacity: 0 !important;
+    transform: translateY(30px) !important;
+    transition-duration: 1s !important; /* ВРЕМЯ ИСЧЕЗНОВЕНИЯ */
+    transition-timing-function: ease-in !important;
+}
+
+/* Начальное состояние (скрыто) */
+.initial-hidden {
+    opacity: 0;
+    transform: translateY(30px);
+}
