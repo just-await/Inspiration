@@ -188,6 +188,9 @@
         }
 
         function handleGenerate() {
+            // Если кнопка уже нажата (активна анимация), ничего не делаем
+            if (magicBtn.disabled) return;
+
             magicBtn.disabled = true;
             btnContent.classList.add('hidden');
             btnLoader.classList.remove('hidden');
@@ -195,16 +198,30 @@
             quoteWrapper.classList.remove('fade-in');
             quoteWrapper.classList.add('fade-out');
 
-            // Ждем завершения CSS-анимации исчезновения
-            quoteWrapper.addEventListener('transitionend', function() {
-                // Используем новую функцию
+            // --- ИСПРАВЛЕНИЕ БАГА С АНИМАЦИЕЙ ---
+            // Используем именованную функцию вместо {once: true} с анонимной,
+            // чтобы можно было отфильтровать ненужные события (от copy-hint).
+            const transitionHandler = function(e) {
+                // 1. Проверяем, что событие пришло именно от обертки (quoteWrapper),
+                // а не всплыло от дочерних элементов (например, copy-hint).
+                if (e.target !== quoteWrapper) return;
+
+                // 2. Проверяем, что завершилась именно анимация прозрачности (или трансформации),
+                // так как это основные свойства исчезновения.
+                if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
+
+                // Если проверки пройдены, удаляем слушатель и продолжаем
+                quoteWrapper.removeEventListener('transitionend', transitionHandler);
+
                 currentQuote = getSmartQuote();
                 updateQuote(currentQuote);
                 
                 magicBtn.disabled = false;
                 btnContent.classList.remove('hidden');
                 btnLoader.classList.add('hidden');
-            }, { once: true });
+            };
+
+            quoteWrapper.addEventListener('transitionend', transitionHandler);
         }
 
         initParticles();
