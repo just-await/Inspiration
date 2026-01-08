@@ -4,7 +4,7 @@
 
 /* ... СЮДА ВСТАВЬ ВЕСЬ КОД ИЗ ТВОЕГО СТАРОГО styles.css ... */
 /* Импорт шрифта */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 /* Базовые настройки */
 body {
@@ -12,6 +12,11 @@ body {
     margin: 0;
     overflow: hidden;
     background-color: #0f172a;
+    
+    /* МАГИЯ ДЛЯ ТЕЛЕФОНОВ: */
+    /* Делает шрифт чуть жирнее и естественнее */
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
 }
 
 /* --- Анимация кнопки (Блик) --- */
