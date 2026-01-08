@@ -1,3 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ... СЮДА ВСТАВЬ ВЕСЬ КОД ИЗ ТВОЕГО СТАРОГО styles.css ... */
 /* Импорт шрифта */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap');
 

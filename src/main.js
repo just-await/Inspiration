@@ -1,11 +1,15 @@
-// constants.js больше не нужен!
+// 1. Импортируем стили
+import './style.css'
+
+// 2. Импортируем клиент Supabase
+import { createClient } from '@supabase/supabase-js'
 
 // --- НАСТРОЙКА SUPABASE ---
+// (В идеале ключи хранят в .env файлах, но пока оставим так для простоты)
 const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 
-// Инициализация
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- ЭЛЕМЕНТЫ DOM ---
 const quoteWrapper = document.getElementById('quote-wrapper');
@@ -44,54 +48,89 @@ const FALLBACK_QUOTE = {
     author: "Система"
 };
 
-// Логика паспорта (Session ID)
+// ... (выше остались импорты и DOM элементы) ...
+
+// --- ЛОГИКА ПАСПОРТА ---
 let userSessionId = localStorage.getItem('user_session_id');
 if (!userSessionId) {
     userSessionId = generateUUID();
     localStorage.setItem('user_session_id', userSessionId);
 }
 
-// --- ФУНКЦИИ ПОЛУЧЕНИЯ ЦИТАТЫ (СЕРВЕРНАЯ ОПТИМИЗАЦИЯ) ---
+// --- НОВАЯ ЛОГИКА "КОЛОДА КАРТ" (БЕЗ ПОВТОРОВ) ---
 
-async function getSmartQuoteObj() {
-    try {
-        // Вызываем нашу SQL функцию get_random_quote
-        const { data, error } = await supabase.rpc('get_random_quote');
+// Очередь ID цитат, которые мы еще не показали
+let quoteQueue = []; 
 
-        if (error) throw error;
-        
-        // Если база пустая (чего быть не должно) или ошибка
-        if (!data || data.length === 0) {
-            console.warn("База пуста?");
-            return FALLBACK_QUOTE;
-        }
-
-        const newQuote = data[0];
-
-        // Простая защита от повтора подряд (если выпала та же самая)
-        if (currentQuoteObj.id && newQuote.id === currentQuoteObj.id) {
-            // Пробуем еще раз (рекурсия один раз)
-            const retry = await supabase.rpc('get_random_quote');
-            if (retry.data && retry.data.length > 0) {
-                return retry.data[0];
-            }
-        }
-
-        return newQuote;
-
-    } catch (e) {
-        console.error("Ошибка получения цитаты:", e);
-        // Если ошибка сети — показываем резервную
-        return FALLBACK_QUOTE;
+// Функция перемешивания (Fisher-Yates shuffle)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
 }
+
+// 1. Заполняем очередь (скачиваем только ID)
+async function refillQueue() {
+    try {
+        // Просим у базы только список номеров (это очень быстро)
+        const { data, error } = await supabase.rpc('get_all_quote_ids');
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            console.warn("В базе нет цитат");
+            return false;
+        }
+
+        // Превращаем в чистый массив и перемешиваем
+        quoteQueue = data; // data это массив чисел [1, 5, 20...]
+        shuffleArray(quoteQueue);
+        console.log(`Очередь обновлена: ${quoteQueue.length} цитат готовы к показу`);
+        return true;
+
+    } catch (e) {
+        console.error("Ошибка обновления очереди:", e);
+        return false;
+    }
+}
+
+// 2. Получаем следующую цитату
+async function getSmartQuoteObj() {
+    // Если очередь пуста, наполняем её заново
+    if (quoteQueue.length === 0) {
+        const success = await refillQueue();
+        if (!success) return FALLBACK_QUOTE; // Если база лежит
+    }
+
+    // Достаем последний ID из массива (удаляя его оттуда)
+    const nextId = quoteQueue.pop();
+
+    try {
+        // Запрашиваем полный текст ОДНОЙ конкретной цитаты по ID
+        const { data, error } = await supabase
+            .from('quotes')
+            .select('*')
+            .eq('id', nextId)
+            .single();
+
+        if (error || !data) throw error;
+
+        return data;
+
+    } catch (e) {
+        console.error("Ошибка загрузки текста цитаты:", e);
+        // Если конкретная цитата сломалась, пробуем следующую (рекурсия)
+        return getSmartQuoteObj();
+    }
+}
+
+// ... (ниже функции updateQuote, handleGenerate и т.д. остаются без изменений) ...
 
 function updateQuote(quoteObj) {
     currentQuoteObj = quoteObj;
     quoteText.textContent = quoteObj.text;
     
-    // Если автор "Free Inspiration", можно не показывать (или показывать, как хочешь)
-    // Здесь логика: показываем автора всегда, если он есть
     if (quoteObj.author) {
         quoteAuthor.textContent = `© ${quoteObj.author}`;
         quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
@@ -121,7 +160,7 @@ function handleGenerate() {
 
         quoteWrapper.removeEventListener('transitionend', transitionHandler);
 
-        // Запрашиваем новую
+        // Запрашиваем новую с сервера
         const newQuote = await getSmartQuoteObj();
         updateQuote(newQuote);
         
@@ -160,7 +199,7 @@ initParticles();
 })();
 
 
-// --- ЛОГИКА МОДАЛЬНОГО ОКНА И ОТПРАВКИ ---
+// --- ЛОГИКА МОДАЛЬНОГО ОКНА ---
 function openModal() {
     modalOverlay.classList.remove('hidden');
     setTimeout(() => {
@@ -228,7 +267,6 @@ quoteForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Клик по кнопке плюс
 addQuoteBtn.addEventListener('click', () => {
     openModal();
     if (addHint) addHint.classList.add('hidden');
@@ -239,7 +277,7 @@ modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModalFunc();
 });
 
-// Копирование
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function resetCopyHint() {
     copyHint.textContent = "нажми чтобы скопировать";
     copyHint.classList.remove('text-green-400', 'tracking-normal');
@@ -249,7 +287,7 @@ function resetCopyHint() {
 function handleCopy() {
     if (!currentQuoteObj.text) return;
     const textToCopy = currentQuoteObj.author 
-        ? `${currentQuoteObj.text}\n© ${currentQuoteObj.author}` 
+        ? `${currentQuoteObj.text}` 
         : currentQuoteObj.text;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
@@ -260,10 +298,6 @@ function handleCopy() {
     });
 }
 
-magicBtn.addEventListener('click', handleGenerate);
-quoteWrapper.addEventListener('click', handleCopy);
-
-// Частицы
 function initParticles() {
     for (let i = 0; i < 20; i++) {
         const particle = document.createElement('div');
@@ -278,10 +312,13 @@ function initParticles() {
     }
 }
 
-// Генератор UUID
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 }
+
+// Слушатели основных кнопок
+magicBtn.addEventListener('click', handleGenerate);
+quoteWrapper.addEventListener('click', handleCopy);
