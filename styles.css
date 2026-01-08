@@ -94,7 +94,7 @@ body {
 .hint-text {
     font-family: 'Montserrat', sans-serif;
     font-weight: 600; /* Жирность */
-    text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Тень */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.336); /* Тень */
     color: rgba(255, 255, 255, 0.8); /* Цвет текста */
     
     /* РАЗМЕР ШРИФТА ДЛЯ ТЕЛЕФОНОВ */
