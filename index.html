@@ -5,64 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Free Inspiration</title>
     
-    <!-- Подключение внешних стилей -->
+    <!-- Стили -->
     <link rel="stylesheet" href="styles.css">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase (База данных) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-black text-white selection:bg-purple-500 selection:text-white overflow-hidden">
+<body class="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-black text-white selection:bg-purple-500 selection:text-white overflow-hidden font-montserrat">
 
-    <!-- Контейнер для частиц -->
+    <!-- Частицы -->
     <div id="particles-container" class="absolute inset-0 overflow-hidden pointer-events-none z-0"></div>
 
-    <!-- 
-        Основной контейнер.
-        Используем flex-col.
-        justify-start + pt-[25vh]: Это смещает начало контента на 25% высоты экрана вниз.
-        Таким образом, центр контента оказывается ВИЗУАЛЬНО НИЖЕ середины экрана.
-    -->
-    <div class="relative z-10 flex flex-col items-center justify-start w-full h-screen pt-[25vh] pb-10">
-        
-        <!-- 
-           Секция с цитатой.
-           w-full: На всю ширину.
-           max-w-[90vw]: Ограничение 90% ширины экрана (чтобы не липло к краям).
-           lg:max-w-7xl: На больших экранах еще шире.
-           mb-20: Отступ до кнопки.
-        -->
-        <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col justify-end items-center mb-20 min-h-[200px]">
-            <!-- 
-                ИЗМЕНЕНИЕ: Убраны классы 'transition-transform', 'duration-300', 'active:scale-[0.98]'.
-                Теперь вся анимация управляется исключительно через styles.css.
-            -->
-            <div id="quote-wrapper" class="relative text-center w-full px-2 initial-hidden cursor-pointer group select-none">
+    <!-- КНОПКА "ПРЕДЛОЖИТЬ ФРАЗУ" -->
+    <button id="add-quote-btn" class="fixed top-6 right-6 z-50 group flex items-center justify-center w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-300">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+    </button>
+
+    <!-- МОДАЛЬНОЕ ОКНО -->
+    <div id="modal-overlay" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div id="modal-content" class="relative w-[90vw] max-w-md bg-[#0f172a] border border-white/10 rounded-2xl p-8 shadow-2xl transform scale-95 transition-transform duration-300">
+            
+            <button id="close-modal" class="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- ЭТАП 1: ФОРМА -->
+            <div id="form-step">
+                <h2 class="text-2xl font-bold mb-1 text-white">Добавить искру</h2>
+                <p class="text-sm text-white/50 mb-6">Ваша фраза может вдохновить тысячи.</p>
+
+                <form id="quote-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">Ваше имя (или ник)</label>
+                        <input type="text" id="input-author" required placeholder="Например: Стетхем" maxlength="20"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all">
+                    </div>
+
+                    <!-- ... Поле Имя (было выше) ... -->
+
+                    <!-- НОВОЕ ПОЛЕ: КОНТАКТ -->
+                    <div>
+                        <label class="block text-xs tracking-wider text-white/40 mb-1">ВАШ ТЕЛЕГРАМ (напишем об одобрении цитаты)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-white/30">@</span>
+                            <input type="text" id="input-contact" placeholder="username" maxlength="30"
+                                class="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all">
+                        </div>
+                    </div>
+
+                    <!-- ... Поле Цитата (будет ниже) ... -->
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="block text-xs uppercase tracking-wider text-white/40">Ваша фраза</label>
+                            <span id="char-count" class="text-xs text-white/30">0/90</span>
+                        </div>
+                        <textarea id="input-text" required placeholder="Напишите что-то легендарное..." maxlength="90" rows="3"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg flex justify-center items-center gap-2">
+                        <span>Предложить фразу</span>
+                        <svg id="submit-loader" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- ЭТАП 2: УСПЕХ -->
+            <div id="success-step" class="hidden text-center py-4">
+                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Отправлено на модерацию!</h3>
+
+                <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-6">
+                    <p class="text-yellow-200 text-xs font-medium leading-relaxed">
+                        ⚠️ ВАЖНО: Мы не храним ваши личные данные. Чтобы связать именно эту фразу с вашим аккаунтом и получить уведомление о ее одобрении, обязательно перейдите в бота по кнопке ниже.
+                    </p>
+                </div>
                 
-                <!-- Подсказка о копировании -->
+                <!-- СЮДА ПОТОМ ВСТАВИШЬ ССЫЛКУ НА СВОЕГО БОТА -->
+                <a href="https://t.me/MyInspoMod_bot" target="_blank" class="block w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    Перейти в бота
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <div class="relative z-10 flex flex-col items-center justify-start w-full h-screen pt-[25vh] pb-10">
+        <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col justify-end items-center mb-20 min-h-[250px]">
+            <div id="quote-wrapper" class="relative text-center w-full px-2 initial-hidden cursor-pointer group select-none flex flex-col items-center">
+                
                 <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-8 transition-colors duration-500 group-hover:text-white/60">
                     нажми чтобы скопировать
                 </p>
 
-                <!-- 
-                   Текст цитаты.
-                   РЕДАКТИРОВАНИЕ РАЗМЕРА:
-                   text-3xl (мобильные)
-                   md:text-5xl (планшеты)
-                   lg:text-6xl (компьютеры)
-                   
-                   ИЗМЕНЕНИЕ: Убран градиент (text-transparent bg-clip-text ...).
-                   Теперь текст чисто белый (text-white).
-                -->
-                <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl pb-6 break-words [text-wrap:balance]">
-                    <!-- Текст появится здесь -->
+                <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl pb-4 break-words [text-wrap:balance]">
                 </h1>
                 
-                <!-- Декоративная линия -->
-                <div class="w-32 h-1.5 bg-white/20 mx-auto mt-2 rounded-full group-hover:bg-white/50 transition-colors duration-500"></div>
+                <p id="quote-author" class="text-lg md:text-xl text-purple-400 font-semibold mt-4 opacity-0 transform translate-y-4 transition-all duration-700 italic">
+                </p>
+
+                <div class="w-32 h-1.5 bg-white/20 mx-auto mt-6 rounded-full group-hover:bg-white/50 transition-colors duration-500"></div>
             </div>
         </div>
 
-        <!-- Секция с кнопкой -->
         <div class="flex-shrink-0">
             <button id="magic-btn" class="
                 group relative btn-shine bg-white text-black font-black text-lg md:text-xl tracking-wider uppercase py-6 px-14 rounded-full
@@ -71,14 +132,8 @@
                 disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed
                 shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] active:shadow-[0_0_20px_rgba(255,255,255,0.1)]
             ">
-                <!-- Свечение -->
                 <div class="absolute inset-0 rounded-full ring-2 ring-white/50 group-hover:ring-4 group-hover:ring-white/80 transition-all duration-700 opacity-0 group-hover:opacity-100 blur-sm"></div>
-                
-                <!-- 
-                    z-20: Подняли слой контента выше, чтобы анимация блеска (которая внутри кнопки) не перекрывала его.
-                -->
                 <span class="relative z-20 flex items-center gap-3">
-                    <!-- Лоадер -->
                     <span id="btn-loader" class="hidden flex items-center gap-2">
                         <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -86,15 +141,8 @@
                         </svg>
                         ...
                     </span>
-                    
-                    <!-- Текст кнопки -->
                     <span id="btn-content" class="flex items-center gap-3">
                         <span>Вдохновиться</span>
-                        <!-- 
-                            Иконка Звезды (Star).
-                            Заменена на стандартную 5-конечную звезду (solid/filled), так как предыдущая 4-конечная не понравилась пользователю.
-                            Используем fill="currentColor" чтобы она была закрашена цветом text-purple-600.
-                        -->
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-500 text-purple-600">
                             <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
                         </svg>
@@ -105,140 +153,7 @@
 
     </div>
 
-    <!-- Логика -->
-    <script type="module">
-        import { MOTIVATIONAL_QUOTES } from './constants.js';
-
-        const quoteWrapper = document.getElementById('quote-wrapper');
-        const quoteText = document.getElementById('quote-text');
-        const copyHint = document.getElementById('copy-hint'); 
-        const magicBtn = document.getElementById('magic-btn');
-        const btnLoader = document.getElementById('btn-loader');
-        const btnContent = document.getElementById('btn-content');
-        const particlesContainer = document.getElementById('particles-container');
-
-        let currentQuote = "";
-        
-        // "Мешок" с фразами. Будем удалять отсюда фразы по мере показа.
-        let quotePool = []; 
-
-        function initParticles() {
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                const size = Math.random() * 5 + 2;
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${Math.random() * 100}%`;
-                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
-                particle.style.animationDelay = `${Math.random() * 5}s`;
-                particlesContainer.appendChild(particle);
-            }
-        }
-
-        // Умная функция получения цитаты (Bag System)
-        function getSmartQuote() {
-            // 1. Если мешок пуст, наполняем его заново всеми фразами
-            if (quotePool.length === 0) {
-                quotePool = [...MOTIVATIONAL_QUOTES];
-            }
-
-            // 2. Выбираем случайный индекс из оставшихся
-            let randomIndex = Math.floor(Math.random() * quotePool.length);
-            
-            // Защита от повтора на стыке циклов:
-            // Если мы только что наполнили мешок заново (новый цикл),
-            // и случайно выбрали ту же фразу, которая сейчас на экране...
-            if (quotePool.length === MOTIVATIONAL_QUOTES.length && quotePool[randomIndex] === currentQuote) {
-                // ...просто берем следующую (или предыдущую), чтобы не повторяться подряд.
-                // Оператор % (остаток от деления) зацикливает индекс, чтобы не выйти за границы.
-                randomIndex = (randomIndex + 1) % quotePool.length;
-            }
-
-            // 3. Достаем фразу
-            const selectedQuote = quotePool[randomIndex];
-
-            // 4. Удаляем эту фразу из мешка (splice изменяет массив quotePool)
-            quotePool.splice(randomIndex, 1);
-
-            return selectedQuote;
-        }
-
-        function updateQuote(text) {
-            quoteText.textContent = text;
-            quoteWrapper.classList.remove('fade-out', 'initial-hidden');
-            quoteWrapper.classList.add('fade-in');
-            resetCopyHint();
-        }
-
-        function resetCopyHint() {
-            copyHint.textContent = "нажми чтобы скопировать";
-            copyHint.classList.remove('text-green-400', 'tracking-normal');
-            copyHint.classList.add('text-white/30', 'tracking-[0.3em]');
-        }
-
-        function handleCopy() {
-            if (!currentQuote) return;
-            navigator.clipboard.writeText(currentQuote).then(() => {
-                copyHint.textContent = "Скопировано!";
-                copyHint.classList.remove('text-white/30', 'tracking-[0.3em]');
-                copyHint.classList.add('text-green-400', 'tracking-widest');
-                setTimeout(resetCopyHint, 2000);
-            }).catch(err => console.error(err));
-        }
-
-        function handleGenerate() {
-            // Если кнопка уже нажата (активна анимация), ничего не делаем
-            if (magicBtn.disabled) return;
-
-            magicBtn.disabled = true;
-            btnContent.classList.add('hidden');
-            btnLoader.classList.remove('hidden');
-
-            quoteWrapper.classList.remove('fade-in');
-            quoteWrapper.classList.add('fade-out');
-
-            // --- ИСПРАВЛЕНИЕ БАГА С АНИМАЦИЕЙ ---
-            // Используем именованную функцию вместо {once: true} с анонимной,
-            // чтобы можно было отфильтровать ненужные события (от copy-hint).
-            const transitionHandler = function(e) {
-                // 1. Проверяем, что событие пришло именно от обертки (quoteWrapper),
-                // а не всплыло от дочерних элементов (например, copy-hint).
-                if (e.target !== quoteWrapper) return;
-
-                // 2. Проверяем, что завершилась именно анимация прозрачности (или трансформации),
-                // так как это основные свойства исчезновения.
-                if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
-
-                // Если проверки пройдены, удаляем слушатель и продолжаем
-                quoteWrapper.removeEventListener('transitionend', transitionHandler);
-
-                currentQuote = getSmartQuote();
-                updateQuote(currentQuote);
-                
-                magicBtn.disabled = false;
-                btnContent.classList.remove('hidden');
-                btnLoader.classList.add('hidden');
-            };
-
-            quoteWrapper.addEventListener('transitionend', transitionHandler);
-        }
-
-        initParticles();
-        
-        // При первой загрузке тоже используем умный выбор
-        currentQuote = getSmartQuote();
-        
-        // 1. Устанавливаем текст сразу, чтобы элемент занял правильную высоту
-        quoteText.textContent = currentQuote;
-
-        // 2. Добавляем небольшую задержку перед снятием класса скрытия.
-        setTimeout(() => {
-            updateQuote(currentQuote);
-        }, 100);
-
-        magicBtn.addEventListener('click', handleGenerate);
-        quoteWrapper.addEventListener('click', handleCopy); 
-    </script>
+    <!-- ПОДКЛЮЧАЕМ ЛОГИКУ -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>

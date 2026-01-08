@@ -51,45 +51,41 @@ body {
 
 /* --- Анимации текста --- */
 
-/* 
-   Базовый элемент. 
-   Мы задаем transition-property здесь, чтобы браузер всегда знал, ЧТО анимировать.
-   Duration будет переопределяться классами ниже.
-*/
 #quote-wrapper {
-    /* Свойства по умолчанию */
-    opacity: 1;
-    transform: translateY(0);
-    
-    /* Свойства для анимации */
+    /* Убираем жесткие opacity и transform отсюда, 
+       оставляем только настройки анимации */
     transition-property: opacity, transform;
     will-change: opacity, transform;
+    /* Добавляем базовую длительность на всякий случай */
+    transition-duration: 1s; 
 }
 
 /* 
     Появление (вход) 
-    Здесь вы можете менять '2s' на любое время.
 */
 .fade-in {
     opacity: 1 !important;
     transform: translateY(0) !important;
-    transition-duration: 1s !important; /* ВРЕМЯ ПОЯВЛЕНИЯ */
+    transition-duration: 1s !important;
     transition-timing-function: ease-out !important;
 }
 
 /* 
     Исчезновение (выход)
-    Здесь вы можете менять '1s' на любое время.
 */
 .fade-out {
     opacity: 0 !important;
     transform: translateY(30px) !important;
-    transition-duration: 1s !important; /* ВРЕМЯ ИСЧЕЗНОВЕНИЯ */
+    transition-duration: 1s !important;
     transition-timing-function: ease-in !important;
 }
 
-/* Начальное состояние (скрыто) */
+/* 
+   Начальное состояние (скрыто) 
+   Добавили !important, чтобы перебить любые другие стили
+*/
 .initial-hidden {
-    opacity: 0;
-    transform: translateY(30px);
+    opacity: 0 !important;
+    transform: translateY(30px) !important;
+    pointer-events: none; /* Чтобы нельзя было случайно нажать пока невидимый */
 }
