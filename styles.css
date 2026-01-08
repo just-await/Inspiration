@@ -89,3 +89,21 @@ body {
     transform: translateY(30px) !important;
     pointer-events: none; /* Чтобы нельзя было случайно нажать пока невидимый */
 }
+
+/* Стили для подсказки "предложить свою фразу" */
+.hint-text {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600; /* Жирность */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Тень */
+    color: rgba(255, 255, 255, 0.8); /* Цвет текста */
+    
+    /* РАЗМЕР ШРИФТА ДЛЯ ТЕЛЕФОНОВ */
+    font-size: 21px; /* Можешь ставить хоть 14.5px */
+}
+
+/* РАЗМЕР ШРИФТА ДЛЯ КОМПЬЮТЕРОВ (экраны шире 768px) */
+@media (min-width: 768px) {
+    .hint-text {
+        font-size: 28px; /* Меняй на любое число */
+    }
+}

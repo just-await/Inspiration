@@ -1,7 +1,10 @@
 import { MOTIVATIONAL_QUOTES } from './constants.js';
 
 // --- НАСТРОЙКА SUPABASE ---
+// 1. Вставь ссылку из раздела Project URL
 const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
+
+// 2. Вставь ключ из раздела Publishable key (default)
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 
 // Инициализация
@@ -31,20 +34,20 @@ const charCount = document.getElementById('char-count');
 const submitBtn = document.getElementById('submit-btn');
 const submitLoader = document.getElementById('submit-loader');
 const inputContact = document.getElementById('input-contact');
-
-// Подсказка "предложить свою фразу"
-const addHint = document.getElementById('add-hint');
+// ... другие переменные ...
+const addHint = document.getElementById('add-hint'); // <--- Добавь это
 
 let currentQuoteObj = { text: "", author: null };
 let quotePool = [];
 
-// Логика паспорта (Session ID)
+// ... твои переменные ...
 let userSessionId = localStorage.getItem('user_session_id');
 
 if (!userSessionId) {
     userSessionId = generateUUID();
     localStorage.setItem('user_session_id', userSessionId);
 }
+// Теперь в userSessionId лежит вечный паспорт этого браузера
 
 // --- ЛОГИКА МОДАЛЬНОГО ОКНА ---
 function openModal() {
@@ -87,6 +90,7 @@ quoteForm.addEventListener('submit', async (e) => {
     
     const text = inputText.value.trim();
     const author = inputAuthor.value.trim();
+    // Берем контакт (удаляем @ если пользователь его ввел)
     const contact = inputContact.value.trim().replace('@', '');
 
     if (!text || !author) return;
@@ -96,6 +100,7 @@ quoteForm.addEventListener('submit', async (e) => {
     submitLoader.classList.remove('hidden');
 
     try {
+        // ОТПРАВЛЯЕМ ВМЕСТЕ С КОНТАКТОМ
         const { error } = await supabase
             .from('quotes')
             .insert([{ text: text, author: author, contact: contact, session_id: userSessionId }]);
@@ -105,7 +110,9 @@ quoteForm.addEventListener('submit', async (e) => {
         formStep.classList.add('hidden');
         successStep.classList.remove('hidden');
 
+        // Обновляем ссылку на бота с паспортом
         const botLinkBtn = successStep.querySelector('a');
+        // Замени тут 'MyInspoMod_bot' на юзернейм своего бота!
         botLinkBtn.href = `https://t.me/MyInspoMod_bot?start=${userSessionId}`;
     } catch (err) {
         console.error('Ошибка отправки:', err);
@@ -117,14 +124,7 @@ quoteForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Обновленная логика клика на кнопку плюса
-addQuoteBtn.addEventListener('click', () => {
-    openModal();
-    if (addHint) {
-        addHint.classList.add('hidden');
-    }
-});
-
+addQuoteBtn.addEventListener('click', openModal);
 closeModal.addEventListener('click', closeModalFunc);
 modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModalFunc();
@@ -258,25 +258,20 @@ function handleGenerate() {
 initParticles();
 
 (async () => {
-    // 1. Показываем подсказку с задержкой
-    setTimeout(() => {
-        if (addHint) {
-            addHint.classList.remove('opacity-0', 'translate-x-4');
-        }
-    }, 1500);
-
-    // 2. Сначала загружаем базу
+    // 1. Сначала загружаем базу
     await fillQuotePool();
     
-    // 3. Выбираем цитату
+    // 2. Выбираем цитату
     currentQuoteObj = await getSmartQuoteObj();
     
-    // 4. Вставляем текст, НО блок пока прозрачный
+    // 3. Вставляем текст, НО блок пока прозрачный (initial-hidden)
     quoteText.textContent = currentQuoteObj.text;
     if (currentQuoteObj.author) {
         quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
     }
 
+    // 4. Небольшая задержка, чтобы браузер понял, что блок скрыт
+    // и подготовился к красивой анимации (500мс идеально)
     setTimeout(() => {
         updateQuote(currentQuoteObj);
     }, 100);
