@@ -1,4 +1,4 @@
-import { MOTIVATIONAL_QUOTES } from './constants.js';
+// constants.js больше не нужен!
 
 // --- НАСТРОЙКА SUPABASE ---
 const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
@@ -32,21 +32,135 @@ const submitBtn = document.getElementById('submit-btn');
 const submitLoader = document.getElementById('submit-loader');
 const inputContact = document.getElementById('input-contact');
 
-// Подсказка "предложить свою фразу"
+// Подсказка
 const addHint = document.getElementById('add-hint');
 
-let currentQuoteObj = { text: "", author: null };
-let quotePool = [];
+// Переменные состояния
+let currentQuoteObj = { text: "", author: null, id: null };
+
+// Резервная фраза (на случай если интернета нет вообще)
+const FALLBACK_QUOTE = {
+    text: "Интернет пропал, но твоя сила воли — на месте.",
+    author: "Система"
+};
 
 // Логика паспорта (Session ID)
 let userSessionId = localStorage.getItem('user_session_id');
-
 if (!userSessionId) {
     userSessionId = generateUUID();
     localStorage.setItem('user_session_id', userSessionId);
 }
 
-// --- ЛОГИКА МОДАЛЬНОГО ОКНА ---
+// --- ФУНКЦИИ ПОЛУЧЕНИЯ ЦИТАТЫ (СЕРВЕРНАЯ ОПТИМИЗАЦИЯ) ---
+
+async function getSmartQuoteObj() {
+    try {
+        // Вызываем нашу SQL функцию get_random_quote
+        const { data, error } = await supabase.rpc('get_random_quote');
+
+        if (error) throw error;
+        
+        // Если база пустая (чего быть не должно) или ошибка
+        if (!data || data.length === 0) {
+            console.warn("База пуста?");
+            return FALLBACK_QUOTE;
+        }
+
+        const newQuote = data[0];
+
+        // Простая защита от повтора подряд (если выпала та же самая)
+        if (currentQuoteObj.id && newQuote.id === currentQuoteObj.id) {
+            // Пробуем еще раз (рекурсия один раз)
+            const retry = await supabase.rpc('get_random_quote');
+            if (retry.data && retry.data.length > 0) {
+                return retry.data[0];
+            }
+        }
+
+        return newQuote;
+
+    } catch (e) {
+        console.error("Ошибка получения цитаты:", e);
+        // Если ошибка сети — показываем резервную
+        return FALLBACK_QUOTE;
+    }
+}
+
+function updateQuote(quoteObj) {
+    currentQuoteObj = quoteObj;
+    quoteText.textContent = quoteObj.text;
+    
+    // Если автор "Free Inspiration", можно не показывать (или показывать, как хочешь)
+    // Здесь логика: показываем автора всегда, если он есть
+    if (quoteObj.author) {
+        quoteAuthor.textContent = `© ${quoteObj.author}`;
+        quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
+    } else {
+        quoteAuthor.classList.add('opacity-0', 'translate-y-4');
+    }
+
+    quoteWrapper.classList.remove('fade-out', 'initial-hidden');
+    quoteWrapper.classList.add('fade-in');
+    resetCopyHint();
+}
+
+function handleGenerate() {
+    if (magicBtn.disabled) return;
+
+    magicBtn.disabled = true;
+    btnContent.classList.add('hidden');
+    btnLoader.classList.remove('hidden');
+
+    quoteWrapper.classList.remove('fade-in');
+    quoteWrapper.classList.add('fade-out');
+    quoteAuthor.classList.add('opacity-0', 'translate-y-4');
+
+    const transitionHandler = async function(e) {
+        if (e.target !== quoteWrapper) return;
+        if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
+
+        quoteWrapper.removeEventListener('transitionend', transitionHandler);
+
+        // Запрашиваем новую
+        const newQuote = await getSmartQuoteObj();
+        updateQuote(newQuote);
+        
+        magicBtn.disabled = false;
+        btnContent.classList.remove('hidden');
+        btnLoader.classList.add('hidden');
+    };
+
+    quoteWrapper.addEventListener('transitionend', transitionHandler);
+}
+
+// --- ЗАПУСК ---
+initParticles();
+
+(async () => {
+    // 1. Показываем подсказку
+    setTimeout(() => {
+        if (addHint) {
+            addHint.classList.remove('opacity-0', 'translate-x-4');
+        }
+    }, 1500);
+
+    // 2. Получаем первую цитату (сразу из базы!)
+    currentQuoteObj = await getSmartQuoteObj();
+    
+    // 3. Подготавливаем DOM
+    quoteText.textContent = currentQuoteObj.text;
+    if (currentQuoteObj.author) {
+        quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
+    }
+
+    // 4. Плавно показываем
+    setTimeout(() => {
+        updateQuote(currentQuoteObj);
+    }, 100);
+})();
+
+
+// --- ЛОГИКА МОДАЛЬНОГО ОКНА И ОТПРАВКИ ---
 function openModal() {
     modalOverlay.classList.remove('hidden');
     setTimeout(() => {
@@ -75,11 +189,8 @@ function closeModalFunc() {
 inputText.addEventListener('input', () => {
     const currentLength = inputText.value.length;
     charCount.innerText = `${currentLength}/90`;
-    if (currentLength >= 90) {
-        charCount.classList.add('text-red-500');
-    } else {
-        charCount.classList.remove('text-red-500');
-    }
+    if (currentLength >= 90) charCount.classList.add('text-red-500');
+    else charCount.classList.remove('text-red-500');
 });
 
 quoteForm.addEventListener('submit', async (e) => {
@@ -109,7 +220,7 @@ quoteForm.addEventListener('submit', async (e) => {
         botLinkBtn.href = `https://t.me/MyInspoMod_bot?start=${userSessionId}`;
     } catch (err) {
         console.error('Ошибка отправки:', err);
-        alert('Ошибка при отправке. Проверьте консоль.');
+        alert('Ошибка. Попробуйте позже.');
     } finally {
         submitBtn.disabled = false;
         submitBtn.querySelector('span').textContent = "Предложить фразу";
@@ -117,12 +228,10 @@ quoteForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Обновленная логика клика на кнопку плюса
+// Клик по кнопке плюс
 addQuoteBtn.addEventListener('click', () => {
     openModal();
-    if (addHint) {
-        addHint.classList.add('hidden');
-    }
+    if (addHint) addHint.classList.add('hidden');
 });
 
 closeModal.addEventListener('click', closeModalFunc);
@@ -130,82 +239,7 @@ modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModalFunc();
 });
 
-// --- ЛОГИКА ЦИТАТ ---
-function initParticles() {
-    for (let i = 0; i < 20; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        const size = Math.random() * 5 + 2;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
-        particle.style.animationDelay = `${Math.random() * 5}s`;
-        particlesContainer.appendChild(particle);
-    }
-}
-
-async function loadQuotes() {
-    const localQuotes = MOTIVATIONAL_QUOTES.map(text => ({
-        text: text,
-        author: null
-    }));
-
-    let allQuotes = [...localQuotes];
-
-    try {
-        const { data, error } = await supabase
-            .from('quotes')
-            .select('text, author')
-            .eq('is_approved', true);
-
-        if (data && !error) {
-            allQuotes = [...allQuotes, ...data];
-        }
-    } catch (e) {
-        console.log("Офлайн режим (только локальные фразы)");
-    }
-
-    return allQuotes;
-}
-
-async function fillQuotePool() {
-    const allQuotes = await loadQuotes();
-    quotePool = [...allQuotes];
-}
-
-async function getSmartQuoteObj() {
-    if (quotePool.length === 0) {
-        await fillQuotePool();
-    }
-
-    let randomIndex = Math.floor(Math.random() * quotePool.length);
-    
-    if (currentQuoteObj.text && quotePool[randomIndex].text === currentQuoteObj.text && quotePool.length > 1) {
-        randomIndex = (randomIndex + 1) % quotePool.length;
-    }
-
-    const selected = quotePool[randomIndex];
-    quotePool.splice(randomIndex, 1);
-    return selected;
-}
-
-function updateQuote(quoteObj) {
-    currentQuoteObj = quoteObj;
-    quoteText.textContent = quoteObj.text;
-    
-    if (quoteObj.author) {
-        quoteAuthor.textContent = `© ${quoteObj.author}`;
-        quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
-    } else {
-        quoteAuthor.classList.add('opacity-0', 'translate-y-4');
-    }
-
-    quoteWrapper.classList.remove('fade-out', 'initial-hidden');
-    quoteWrapper.classList.add('fade-in');
-    resetCopyHint();
-}
-
+// Копирование
 function resetCopyHint() {
     copyHint.textContent = "нажми чтобы скопировать";
     copyHint.classList.remove('text-green-400', 'tracking-normal');
@@ -223,68 +257,28 @@ function handleCopy() {
         copyHint.classList.remove('text-white/30', 'tracking-[0.3em]');
         copyHint.classList.add('text-green-400', 'tracking-widest');
         setTimeout(resetCopyHint, 2000);
-    }).catch(err => console.error(err));
+    });
 }
-
-function handleGenerate() {
-    if (magicBtn.disabled) return;
-
-    magicBtn.disabled = true;
-    btnContent.classList.add('hidden');
-    btnLoader.classList.remove('hidden');
-
-    quoteWrapper.classList.remove('fade-in');
-    quoteWrapper.classList.add('fade-out');
-    quoteAuthor.classList.add('opacity-0', 'translate-y-4');
-
-    const transitionHandler = async function(e) {
-        if (e.target !== quoteWrapper) return;
-        if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
-
-        quoteWrapper.removeEventListener('transitionend', transitionHandler);
-
-        const newQuote = await getSmartQuoteObj();
-        updateQuote(newQuote);
-        
-        magicBtn.disabled = false;
-        btnContent.classList.remove('hidden');
-        btnLoader.classList.add('hidden');
-    };
-
-    quoteWrapper.addEventListener('transitionend', transitionHandler);
-}
-
-// --- ЗАПУСК ---
-initParticles();
-
-(async () => {
-    // 1. Показываем подсказку с задержкой
-    setTimeout(() => {
-        if (addHint) {
-            addHint.classList.remove('opacity-0', 'translate-x-4');
-        }
-    }, 1500);
-
-    // 2. Сначала загружаем базу
-    await fillQuotePool();
-    
-    // 3. Выбираем цитату
-    currentQuoteObj = await getSmartQuoteObj();
-    
-    // 4. Вставляем текст, НО блок пока прозрачный
-    quoteText.textContent = currentQuoteObj.text;
-    if (currentQuoteObj.author) {
-        quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
-    }
-
-    setTimeout(() => {
-        updateQuote(currentQuoteObj);
-    }, 100);
-})();
 
 magicBtn.addEventListener('click', handleGenerate);
 quoteWrapper.addEventListener('click', handleCopy);
 
+// Частицы
+function initParticles() {
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        const size = Math.random() * 5 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+        particle.style.animationDelay = `${Math.random() * 5}s`;
+        particlesContainer.appendChild(particle);
+    }
+}
+
+// Генератор UUID
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
