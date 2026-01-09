@@ -210,7 +210,7 @@ setTimeout(() => {
         // Показываем снова
         quoteWrapper.classList.remove('fade-out');
         quoteWrapper.classList.add('fade-in');
-    }, 500); // Ждем пока исчезнет заглушка (время transition в CSS у нас 1s, можно уменьшить до 0.5s для скорости)
+    }, 900); // Ждем пока исчезнет заглушка (время transition в CSS у нас 1s, можно уменьшить до 0.5s для скорости)
 
 })();
 
