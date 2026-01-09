@@ -1,13 +1,11 @@
-// 1. Импортируем стили
 import './style.css'
-
-// 2. Импортируем клиент Supabase
 import { createClient } from '@supabase/supabase-js'
 
-// --- НАСТРОЙКА SUPABASE ---
-// (В идеале ключи хранят в .env файлах, но пока оставим так для простоты)
+// --- НАСТРОЙКИ ---
 const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
+// ВАЖНО: Должно совпадать с CSS (0.9s -> 900)
+const ANIMATION_DURATION = 900; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -35,20 +33,17 @@ const charCount = document.getElementById('char-count');
 const submitBtn = document.getElementById('submit-btn');
 const submitLoader = document.getElementById('submit-loader');
 const inputContact = document.getElementById('input-contact');
-
-// Подсказка
 const addHint = document.getElementById('add-hint');
 
-// Переменные состояния
+// --- СОСТОЯНИЕ ---
 let currentQuoteObj = { text: "", author: null, id: null };
+let nextQuoteObj = null; 
+let quoteQueue = [];
 
-// Резервная фраза (на случай если интернета нет вообще)
 const FALLBACK_QUOTE = {
     text: "Интернет пропал, но твоя сила воли — на месте.",
     author: "Система"
 };
-
-// ... (выше остались импорты и DOM элементы) ...
 
 // --- ЛОГИКА ПАСПОРТА ---
 let userSessionId = localStorage.getItem('user_session_id');
@@ -57,12 +52,7 @@ if (!userSessionId) {
     localStorage.setItem('user_session_id', userSessionId);
 }
 
-// --- НОВАЯ ЛОГИКА "КОЛОДА КАРТ" (БЕЗ ПОВТОРОВ) ---
-
-// Очередь ID цитат, которые мы еще не показали
-let quoteQueue = []; 
-
-// Функция перемешивания (Fisher-Yates shuffle)
+// --- ЛОГИКА ОЧЕРЕДИ ---
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -70,44 +60,31 @@ function shuffleArray(array) {
     }
 }
 
-// 1. Заполняем очередь (скачиваем только ID)
 async function refillQueue() {
     try {
-        // Просим у базы только список номеров (это очень быстро)
         const { data, error } = await supabase.rpc('get_all_quote_ids');
-        
         if (error) throw error;
-        
-        if (!data || data.length === 0) {
-            console.warn("В базе нет цитат");
-            return false;
-        }
+        if (!data || data.length === 0) return false;
 
-        // Превращаем в чистый массив и перемешиваем
-        quoteQueue = data; // data это массив чисел [1, 5, 20...]
+        quoteQueue = data; 
         shuffleArray(quoteQueue);
-        console.log(`Очередь обновлена: ${quoteQueue.length} цитат готовы к показу`);
         return true;
-
     } catch (e) {
-        console.error("Ошибка обновления очереди:", e);
+        console.error("Ошибка очереди:", e);
         return false;
     }
 }
 
-// 2. Получаем следующую цитату
-async function getSmartQuoteObj() {
-    // Если очередь пуста, наполняем её заново
+// --- ПОЛУЧЕНИЕ ЦИТАТЫ ---
+async function fetchOneQuote() {
     if (quoteQueue.length === 0) {
         const success = await refillQueue();
-        if (!success) return FALLBACK_QUOTE; // Если база лежит
+        if (!success) return FALLBACK_QUOTE;
     }
 
-    // Достаем последний ID из массива (удаляя его оттуда)
     const nextId = quoteQueue.pop();
 
     try {
-        // Запрашиваем полный текст ОДНОЙ конкретной цитаты по ID
         const { data, error } = await supabase
             .from('quotes')
             .select('*')
@@ -115,19 +92,15 @@ async function getSmartQuoteObj() {
             .single();
 
         if (error || !data) throw error;
-
         return data;
-
     } catch (e) {
-        console.error("Ошибка загрузки текста цитаты:", e);
-        // Если конкретная цитата сломалась, пробуем следующую (рекурсия)
-        return getSmartQuoteObj();
+        console.error("Ошибка загрузки:", e);
+        return fetchOneQuote();
     }
 }
 
-// ... (ниже функции updateQuote, handleGenerate и т.д. остаются без изменений) ...
-
-function updateQuote(quoteObj) {
+// --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+function updateQuoteUI(quoteObj) {
     currentQuoteObj = quoteObj;
     quoteText.textContent = quoteObj.text;
     
@@ -143,79 +116,68 @@ function updateQuote(quoteObj) {
     resetCopyHint();
 }
 
-function handleGenerate() {
+// --- ГЛАВНАЯ КНОПКА ---
+async function handleGenerate() {
     if (magicBtn.disabled) return;
 
     magicBtn.disabled = true;
-    btnContent.classList.add('hidden');
-    btnLoader.classList.remove('hidden');
-
+    
+    // Анимация исчезновения
     quoteWrapper.classList.remove('fade-in');
     quoteWrapper.classList.add('fade-out');
     quoteAuthor.classList.add('opacity-0', 'translate-y-4');
 
-    const transitionHandler = async function(e) {
-        if (e.target !== quoteWrapper) return;
-        if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
+    const performSwitch = async () => {
+        // Если буфер пуст, грузим сейчас
+        if (!nextQuoteObj) {
+            btnContent.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            nextQuoteObj = await fetchOneQuote();
+        }
 
-        quoteWrapper.removeEventListener('transitionend', transitionHandler);
+        const quoteToShow = nextQuoteObj;
+        nextQuoteObj = null;
 
-        // Запрашиваем новую с сервера
-        const newQuote = await getSmartQuoteObj();
-        updateQuote(newQuote);
-        
+        updateQuoteUI(quoteToShow);
+
         magicBtn.disabled = false;
         btnContent.classList.remove('hidden');
         btnLoader.classList.add('hidden');
+
+        // Грузим следующую в фоне
+        fetchOneQuote().then(q => { nextQuoteObj = q; });
     };
 
-    quoteWrapper.addEventListener('transitionend', transitionHandler);
+    // Ждем окончания анимации CSS (900мс)
+    setTimeout(performSwitch, ANIMATION_DURATION); 
 }
 
+
 // --- ЗАПУСК ---
-// 1. СРАЗУ запускаем частицы (не ждем базу)
 initParticles();
 
-// 2. СРАЗУ показываем подсказку (не ждем базу)
-setTimeout(() => {
-    if (addHint) {
-        addHint.classList.remove('opacity-0', 'translate-x-4');
-    }
-}, 500); // Уменьшил задержку до 500мс, чтобы интерфейс ожил быстрее
-
 (async () => {
-    // 3. Показываем "Загрузка..." или красивую фразу-заглушку СРАЗУ
-    // Это уберет ощущение, что сайт завис
+    setTimeout(() => {
+        if (addHint) addHint.classList.remove('opacity-0', 'translate-x-4');
+    }, 1500);
+
     quoteText.textContent = "Ловим вдохновение...";
-    quoteWrapper.classList.remove('fade-out', 'initial-hidden');
+    quoteWrapper.classList.remove('initial-hidden');
     quoteWrapper.classList.add('fade-in');
+
+    const firstQuote = await fetchOneQuote();
     
-    // 4. Параллельно стучимся в базу
-    // (Пользователь пока читает "Ловим вдохновение...", это займет 0.5-1 сек)
-    currentQuoteObj = await getSmartQuoteObj();
-    
-    // 5. Как только база ответила — плавно меняем текст
-    // Сначала скрываем заглушку
     quoteWrapper.classList.remove('fade-in');
     quoteWrapper.classList.add('fade-out');
 
     setTimeout(() => {
-        // Меняем текст на настоящий
-        quoteText.textContent = currentQuoteObj.text;
-        if (currentQuoteObj.author) {
-            quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
-            quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
-        }
-        
-        // Показываем снова
-        quoteWrapper.classList.remove('fade-out');
-        quoteWrapper.classList.add('fade-in');
-    }, 900); // Ждем пока исчезнет заглушка (время transition в CSS у нас 1s, можно уменьшить до 0.5s для скорости)
-
+        updateQuoteUI(firstQuote);
+        fetchOneQuote().then(q => { nextQuoteObj = q; });
+    }, ANIMATION_DURATION); // Используем ту же переменную времени
 })();
 
 
-// --- ЛОГИКА МОДАЛЬНОГО ОКНА ---
+// --- МОДАЛКА, КОПИРОВАНИЕ И ПРОЧЕЕ ---
 function openModal() {
     modalOverlay.classList.remove('hidden');
     setTimeout(() => {
@@ -250,11 +212,9 @@ inputText.addEventListener('input', () => {
 
 quoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const text = inputText.value.trim();
     const author = inputAuthor.value.trim();
     const contact = inputContact.value.trim().replace('@', '');
-
     if (!text || !author) return;
 
     submitBtn.disabled = true;
@@ -265,16 +225,14 @@ quoteForm.addEventListener('submit', async (e) => {
         const { error } = await supabase
             .from('quotes')
             .insert([{ text: text, author: author, contact: contact, session_id: userSessionId }]);
-
         if (error) throw error;
 
         formStep.classList.add('hidden');
         successStep.classList.remove('hidden');
-
         const botLinkBtn = successStep.querySelector('a');
         botLinkBtn.href = `https://t.me/MyInspoMod_bot?start=${userSessionId}`;
     } catch (err) {
-        console.error('Ошибка отправки:', err);
+        console.error(err);
         alert('Ошибка. Попробуйте позже.');
     } finally {
         submitBtn.disabled = false;
@@ -287,13 +245,11 @@ addQuoteBtn.addEventListener('click', () => {
     openModal();
     if (addHint) addHint.classList.add('hidden');
 });
-
 closeModal.addEventListener('click', closeModalFunc);
 modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModalFunc();
 });
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function resetCopyHint() {
     copyHint.textContent = "нажми чтобы скопировать";
     copyHint.classList.remove('text-green-400', 'tracking-normal');
@@ -302,10 +258,7 @@ function resetCopyHint() {
 
 function handleCopy() {
     if (!currentQuoteObj.text) return;
-    const textToCopy = currentQuoteObj.author 
-        ? `${currentQuoteObj.text}` 
-        : currentQuoteObj.text;
-
+    const textToCopy = currentQuoteObj.author ? `${currentQuoteObj.text}\n© ${currentQuoteObj.author}` : currentQuoteObj.text;
     navigator.clipboard.writeText(textToCopy).then(() => {
         copyHint.textContent = "Скопировано!";
         copyHint.classList.remove('text-white/30', 'tracking-[0.3em]');
@@ -315,21 +268,16 @@ function handleCopy() {
 }
 
 function initParticles() {
-    // Если ширина экрана меньше 768px (телефон), делаем 8 частиц. Если ПК — 20.
     const isMobile = window.innerWidth < 768;
     const count = isMobile ? 8 : 20;
-
     for (let i = 0; i < count; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
-        // Немного уменьшим размер частиц на мобилках для скорости
         const sizeBase = isMobile ? 3 : 5; 
         const size = Math.random() * sizeBase + 2;
-        
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
         particle.style.left = `${Math.random() * 100}%`;
-        // Разная скорость: от 10 до 20 секунд
         particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
         particle.style.animationDelay = `${Math.random() * 5}s`;
         particlesContainer.appendChild(particle);
@@ -343,6 +291,5 @@ function generateUUID() {
     });
 }
 
-// Слушатели основных кнопок
 magicBtn.addEventListener('click', handleGenerate);
 quoteWrapper.addEventListener('click', handleCopy);
