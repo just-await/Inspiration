@@ -7,7 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        montserrat: ['Montserrat', 'sans-serif'],
+        // МЕНЯЕМ ТУТ: Вместо создания 'montserrat', мы перезаписываем 'sans' (стандартный)
+        sans: ['Montserrat', 'sans-serif'], 
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
