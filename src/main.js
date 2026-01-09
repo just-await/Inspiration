@@ -173,29 +173,45 @@ function handleGenerate() {
 }
 
 // --- ЗАПУСК ---
+// 1. СРАЗУ запускаем частицы (не ждем базу)
 initParticles();
 
-(async () => {
-    // 1. Показываем подсказку
-    setTimeout(() => {
-        if (addHint) {
-            addHint.classList.remove('opacity-0', 'translate-x-4');
-        }
-    }, 1500);
+// 2. СРАЗУ показываем подсказку (не ждем базу)
+setTimeout(() => {
+    if (addHint) {
+        addHint.classList.remove('opacity-0', 'translate-x-4');
+    }
+}, 500); // Уменьшил задержку до 500мс, чтобы интерфейс ожил быстрее
 
-    // 2. Получаем первую цитату (сразу из базы!)
+(async () => {
+    // 3. Показываем "Загрузка..." или красивую фразу-заглушку СРАЗУ
+    // Это уберет ощущение, что сайт завис
+    quoteText.textContent = "Ловим вдохновение...";
+    quoteWrapper.classList.remove('fade-out', 'initial-hidden');
+    quoteWrapper.classList.add('fade-in');
+    
+    // 4. Параллельно стучимся в базу
+    // (Пользователь пока читает "Ловим вдохновение...", это займет 0.5-1 сек)
     currentQuoteObj = await getSmartQuoteObj();
     
-    // 3. Подготавливаем DOM
-    quoteText.textContent = currentQuoteObj.text;
-    if (currentQuoteObj.author) {
-        quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
-    }
+    // 5. Как только база ответила — плавно меняем текст
+    // Сначала скрываем заглушку
+    quoteWrapper.classList.remove('fade-in');
+    quoteWrapper.classList.add('fade-out');
 
-    // 4. Плавно показываем
     setTimeout(() => {
-        updateQuote(currentQuoteObj);
-    }, 100);
+        // Меняем текст на настоящий
+        quoteText.textContent = currentQuoteObj.text;
+        if (currentQuoteObj.author) {
+            quoteAuthor.textContent = `© ${currentQuoteObj.author}`;
+            quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
+        }
+        
+        // Показываем снова
+        quoteWrapper.classList.remove('fade-out');
+        quoteWrapper.classList.add('fade-in');
+    }, 500); // Ждем пока исчезнет заглушка (время transition в CSS у нас 1s, можно уменьшить до 0.5s для скорости)
+
 })();
 
 
@@ -299,13 +315,21 @@ function handleCopy() {
 }
 
 function initParticles() {
-    for (let i = 0; i < 20; i++) {
+    // Если ширина экрана меньше 768px (телефон), делаем 8 частиц. Если ПК — 20.
+    const isMobile = window.innerWidth < 768;
+    const count = isMobile ? 8 : 20;
+
+    for (let i = 0; i < count; i++) {
         const particle = document.createElement('div');
         particle.classList.add('particle');
-        const size = Math.random() * 5 + 2;
+        // Немного уменьшим размер частиц на мобилках для скорости
+        const sizeBase = isMobile ? 3 : 5; 
+        const size = Math.random() * sizeBase + 2;
+        
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
         particle.style.left = `${Math.random() * 100}%`;
+        // Разная скорость: от 10 до 20 секунд
         particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
         particle.style.animationDelay = `${Math.random() * 5}s`;
         particlesContainer.appendChild(particle);

@@ -37,6 +37,7 @@ body {
     height: 100%;
     background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
     transform: skewX(-25deg);
+    will-change: left;
     animation: shine 3s infinite;
 }
 
@@ -54,6 +55,9 @@ body {
     border-radius: 50%;
     pointer-events: none;
     animation: float 15s linear infinite;
+    /* НОВОЕ: Переносим нагрузку на GPU */
+    will-change: transform;
+    /* Убираем размытие на частицах, если оно там есть, это убивает FPS */
 }
 
 /* --- Анимации текста --- */
@@ -73,7 +77,7 @@ body {
 .fade-in {
     opacity: 1 !important;
     transform: translateY(0) !important;
-    transition-duration: 1s !important;
+    transition-duration: 0.9s !important;
     transition-timing-function: ease-out !important;
 }
 
@@ -83,7 +87,7 @@ body {
 .fade-out {
     opacity: 0 !important;
     transform: translateY(30px) !important;
-    transition-duration: 1s !important;
+    transition-duration: 0.9s !important;
     transition-timing-function: ease-in !important;
 }
 
