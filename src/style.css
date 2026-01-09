@@ -58,47 +58,51 @@ body {
     /* НОВОЕ: Переносим нагрузку на GPU */
     will-change: transform;
     /* Убираем размытие на частицах, если оно там есть, это убивает FPS */
+    transform: translate3d(0, 0, 0); /* Добавь это для надежности */
 }
 
-/* --- Анимации текста --- */
+/* --- Анимации текста (GPU OPTIMIZED) --- */
 
 #quote-wrapper {
-    /* Убираем жесткие opacity и transform отсюда, 
-       оставляем только настройки анимации */
-    transition-property: opacity, transform;
+    /* translate3d(0,0,0) включает аппаратное ускорение даже в покое */
+    transform: translate3d(0, 0, 0);
+    
+    /* will-change готовит видеокарту заранее */
     will-change: opacity, transform;
-    /* Добавляем базовую длительность на всякий случай */
-    transition-duration: 1s; 
+    
+    /* Используем cubic-bezier для очень плавного старта и финиша */
+    transition-property: opacity, transform;
+    transition-duration: 0.9s; /* Должно совпадать с JS */
+    transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    
+    /* Улучшаем рендеринг шрифта при анимации */
+    -webkit-font-smoothing: antialiased;
+    backface-visibility: hidden;
 }
 
-/* 
-    Появление (вход) 
-*/
+/* Появление */
 .fade-in {
     opacity: 1 !important;
-    transform: translateY(0) !important;
-    transition-duration: 0.9s !important;
-    transition-timing-function: ease-out !important;
+    /* translate3d вместо translateY */
+    transform: translate3d(0, 0, 0) !important;
 }
 
-/* 
-    Исчезновение (выход)
-*/
+/* Исчезновение */
 .fade-out {
     opacity: 0 !important;
-    transform: translateY(30px) !important;
-    transition-duration: 0.9s !important;
-    transition-timing-function: ease-in !important;
+    /* Двигаем вниз на 20px (меньше амплитуда = меньше артефактов) */
+    transform: translate3d(0, 20px, 0) !important;
 }
 
-/* 
-   Начальное состояние (скрыто) 
-   Добавили !important, чтобы перебить любые другие стили
-*/
 .initial-hidden {
     opacity: 0 !important;
-    transform: translateY(30px) !important;
-    pointer-events: none; /* Чтобы нельзя было случайно нажать пока невидимый */
+    transform: translate3d(0, 20px, 0) !important;
+    pointer-events: none;
+}
+
+/* Легкая тень, которая не тормозит */
+#quote-text {
+    text-shadow: 0 6px 40px rgba(0, 0, 0, 0.219);
 }
 
 /* Стили для подсказки "предложить свою фразу" */
