@@ -64,20 +64,28 @@ body {
 /* --- Анимации текста (GPU OPTIMIZED) --- */
 
 #quote-wrapper {
-    /* translate3d(0,0,0) включает аппаратное ускорение даже в покое */
+    /* 1. Включаем аппаратное ускорение */
     transform: translate3d(0, 0, 0);
-    
-    /* will-change готовит видеокарту заранее */
     will-change: opacity, transform;
     
-    /* Используем cubic-bezier для очень плавного старта и финиша */
+    /* 2. Анимация (твои настройки) */
     transition-property: opacity, transform;
-    transition-duration: 0.9s; /* Должно совпадать с JS */
+    transition-duration: 0.9s;
     transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     
-    /* Улучшаем рендеринг шрифта при анимации */
-    -webkit-font-smoothing: antialiased;
-    backface-visibility: hidden;
+    /* 3. ГЛАВНОЕ: Изоляция и Фиксация */
+    /* Мы задаем минимальную высоту. Подбери значение! */
+    /* 300px должно хватить для большинства фраз на телефоне */
+    min-height: 300px; 
+    
+    /* Центрируем текст внутри этой фиксированной области */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    /* Говорим браузеру: "Что внутри - не влияет на то, что снаружи" */
+    contain: layout paint;
 }
 
 /* Появление */
