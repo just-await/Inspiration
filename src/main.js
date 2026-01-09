@@ -258,7 +258,7 @@ function resetCopyHint() {
 
 function handleCopy() {
     if (!currentQuoteObj.text) return;
-    const textToCopy = currentQuoteObj.author ? `${currentQuoteObj.text}\n© ${currentQuoteObj.author}` : currentQuoteObj.text;
+    const textToCopy = currentQuoteObj.author ? `${currentQuoteObj.text}` : currentQuoteObj.text;
     navigator.clipboard.writeText(textToCopy).then(() => {
         copyHint.textContent = "Скопировано!";
         copyHint.classList.remove('text-white/30', 'tracking-[0.3em]');
