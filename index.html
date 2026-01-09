@@ -155,52 +155,67 @@
     </div>
 
     <!-- ОСНОВНОЙ КОНТЕНТ -->
-    <div class="relative z-10 flex flex-col items-center justify-start w-full h-screen pt-[25vh] pb-10">
-        <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col justify-end items-center mb-20 min-h-[250px]">
-            <div id="quote-wrapper" class="relative text-center w-full px-2 initial-hidden cursor-pointer group select-none flex flex-col items-center">
-                
-                <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-8 transition-colors duration-500 group-hover:text-white/60">
-                    нажми чтобы скопировать
-                </p>
+    <!-- h-[100dvh] = полная высота видимой области -->
+    <!-- overflow-y-auto = скролл, если текст гигантский -->
+    <div class="relative z-10 w-full h-[100dvh] overflow-y-auto overflow-x-hidden no-scrollbar bg-transparent">
+        
+        <!-- min-h-full = контейнер минимум во весь экран -->
+        <!-- flex-col justify-center = центрируем всё содержимое по вертикали -->
+        <!-- py-20 = безопасные отступы сверху и снизу (чтобы не наезжало на "челку" или кнопку "Домой" на iPhone) -->
+        <div class="w-full min-h-full flex flex-col items-center justify-center py-20 px-4">
+            
+            <!-- БЛОК ЦИТАТЫ -->
+            <!-- mb-16 = отступ от текста до кнопки. На ПК побольше (md:mb-20) -->
+            <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col items-center mb-16 md:mb-20">
+                <div id="quote-wrapper" class="relative text-center w-full initial-hidden cursor-pointer group select-none flex flex-col items-center">
+                    
+                    <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-6 transition-colors duration-500 group-hover:text-white/60">
+                        нажми чтобы скопировать
+                    </p>
 
-                <!-- УБРАЛИ: drop-shadow-2xl, tracking-tight -->
-                <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-4 break-words">
-                </h1>
-                
-                <p id="quote-author" class="text-lg md:text-xl text-purple-400 font-semibold mt-4 opacity-0 transform translate-y-4 transition-all duration-700 italic">
-                </p>
+                    <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-4 break-words">
+                        <!-- Текст появится здесь -->
+                    </h1>
+                    
+                    <p id="quote-author" class="text-lg md:text-xl text-purple-400 font-semibold mt-4 opacity-0 transform translate-y-4 transition-all duration-700 italic">
+                        <!-- Автор появится здесь -->
+                    </p>
 
-                <div class="w-32 h-1.5 bg-white/20 mx-auto mt-6 rounded-full group-hover:bg-white/50 transition-colors duration-500"></div>
+                    <div class="w-32 h-1.5 bg-white/20 mx-auto mt-6 rounded-full group-hover:bg-white/50 transition-colors duration-500"></div>
+                </div>
             </div>
-        </div>
 
-        <div class="flex-shrink-0">
-            <button id="magic-btn" class="
-                group relative btn-shine bg-white text-black font-extrabold text-lg md:text-xl tracking-wider uppercase py-6 px-14 rounded-full
-                transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
-                hover:scale-105 active:scale-95
-                disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed
-                shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] active:shadow-[0_0_20px_rgba(255,255,255,0.1)]
-            ">
-                <div class="absolute inset-0 rounded-full ring-2 ring-white/50 group-hover:ring-4 group-hover:ring-white/80 transition-all duration-700 opacity-0 group-hover:opacity-100 blur-sm"></div>
-                <span class="relative z-20 flex items-center gap-3">
-                    <span id="btn-loader" class="hidden flex items-center gap-2">
-                        <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        ...
+            <!-- БЛОК КНОПКИ -->
+            <!-- flex-shrink-0 = запрещаем кнопке сжиматься -->
+            <!-- z-20 = чтобы была поверх всего -->
+            <div class="flex-shrink-0 z-20">
+                <button id="magic-btn" class="
+                    group relative btn-shine bg-white text-black font-black text-lg md:text-xl tracking-wider uppercase py-6 px-14 rounded-full
+                    transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+                    hover:scale-105 active:scale-95
+                    disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed
+                    shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_70px_rgba(255,255,255,0.5)] active:shadow-[0_0_20px_rgba(255,255,255,0.1)]
+                ">
+                    <div class="absolute inset-0 rounded-full ring-2 ring-white/50 group-hover:ring-4 group-hover:ring-white/80 transition-all duration-700 opacity-0 group-hover:opacity-100 blur-sm"></div>
+                    <span class="relative z-20 flex items-center gap-3">
+                        <span id="btn-loader" class="hidden flex items-center gap-2">
+                            <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            ...
+                        </span>
+                        <span id="btn-content" class="flex items-center gap-3">
+                            <span>Вдохновиться</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-500 text-purple-600">
+                                <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
                     </span>
-                    <span id="btn-content" class="flex items-center gap-3">
-                        <span>Вдохновиться</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-500 text-purple-600">
-                            <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clip-rule="evenodd" />
-                        </svg>
-                    </span>
-                </span>
-            </button>
-        </div>
+                </button>
+            </div>
 
+        </div>
     </div>
 
     <!-- ПОДКЛЮЧАЕМ ЛОГИКУ -->
