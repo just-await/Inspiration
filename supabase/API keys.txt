@@ -1,0 +1,15 @@
+Publishable key
+
+sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b
+
+
+
+Project URL
+
+https://brinoaifolxiuyczysfh.supabase.co
+
+
+
+WEBHOOK:
+
+https://supabase.com/dashboard/project/brinoaifolxiuyczysfh/functions

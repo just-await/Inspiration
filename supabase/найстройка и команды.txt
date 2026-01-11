@@ -1,0 +1,25 @@
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+irm get.scoop.sh | iex
+
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+
+scoop install supabase
+
+cd D:\Desktop\ALL\ПАПКИ\Записи\ПРОЕКТЫ-ВАЙБ\inspiration-project\Inspiration-UGC-Version
+
+supabase login
+
+supabase init
+
+supabase functions new telegram-bot
+
+
+
+
+
+Деплой:
+
+supabase link --project-ref brinoaifolxiuyczysfh
+
+supabase functions deploy telegram-bot --no-verify-jwt
