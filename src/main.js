@@ -311,7 +311,7 @@ googleLoginBtn.addEventListener('click', async () => {
     try {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.href }
+            options: { redirectTo: window.location.origin + window.location.pathname }
         });
         if (error) throw error;
     } catch (err) {
@@ -352,7 +352,7 @@ authForm.addEventListener('submit', async (e) => {
 
         } else if (authMode === 'reset') {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.href, 
+                redirectTo: window.location.origin + window.location.pathname, 
             });
             if (error) throw error;
 
