@@ -194,8 +194,10 @@ btnConfirmDelete.addEventListener('click', async () => {
 // ==========================================
 
 supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY') showResetPasswordModal();
-
+    if (event === 'PASSWORD_RECOVERY') {
+        // Ждём пока страница полностью загрузится
+        setTimeout(() => showResetPasswordModal(), 500);
+    }
     if (session && session.user) {
         currentUser = session.user;
         profileBtn.classList.add('ring-2', 'ring-green-400');
