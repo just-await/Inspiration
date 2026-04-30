@@ -6,9 +6,6 @@ const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 const ANIMATION_DURATION = 900; 
 
-// const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// СТАЛО:
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
         flowType: 'pkce'
@@ -195,7 +192,6 @@ btnConfirmDelete.addEventListener('click', async () => {
 
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
-        // Ждём пока страница полностью загрузится
         setTimeout(() => showResetPasswordModal(), 500);
     }
     if (session && session.user) {
@@ -257,6 +253,28 @@ resetPasswordForm.addEventListener('submit', async (e) => {
         resetSubmitBtn.textContent = "Сохранить пароль";
     }
 });
+
+// ПРОВЕРКА: пришёл ли пользователь по ссылке сброса пароля (PKCE flow)
+async function checkPasswordRecovery() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+
+    if (!code) return; // обычная загрузка — ничего не делаем
+
+    // Обмениваем code на сессию
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+        showToast("Ссылка недействительна или устарела", 'error');
+        return;
+    }
+
+    // Чистим URL от ?code=...
+    window.history.replaceState(null, '', window.location.pathname);
+
+    // Показываем модалку сброса пароля
+    showResetPasswordModal();
+}
 
 // ЛОГИКА ВКЛАДОК
 function setAuthMode(mode) {
@@ -352,7 +370,7 @@ authForm.addEventListener('submit', async (e) => {
                 email,
                 password,
                 options: {
-                    data: { username: name },       // 👈 запятая здесь
+                    data: { username: name },
                     emailRedirectTo: window.location.origin + window.location.pathname
                 }
             });
@@ -451,10 +469,8 @@ async function loadUserQuotes() {
         }
 
         const quoteEl = document.createElement('div');
-        // Добавлено w-full и overflow-hidden чтобы флекс не распирало
         quoteEl.className = 'bg-white/5 border border-white/10 rounded-lg p-4 relative flex flex-col w-full overflow-hidden';
         
-        // ДОБАВЛЕНО break-words break-all whitespace-pre-wrap для защиты от неразрывного текста
         quoteEl.innerHTML = `
             <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap">"${quote.text}"</p>
             <div class="flex items-center justify-between text-xs font-semibold">
@@ -724,6 +740,7 @@ async function handleGenerate() {
 
 // --- ЗАПУСК ---
 initParticles();
+checkPasswordRecovery();
 
 (async () => {
     setTimeout(() => {
