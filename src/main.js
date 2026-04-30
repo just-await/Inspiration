@@ -6,7 +6,14 @@ const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 const ANIMATION_DURATION = 900; 
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// СТАЛО:
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+        flowType: 'pkce'
+    }
+});
 
 // --- ЭЛЕМЕНТЫ DOM ---
 const quoteWrapper = document.getElementById('quote-wrapper');
