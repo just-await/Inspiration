@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ... СЮДА ВСТАВЬ ВЕСЬ КОД ИЗ ТВОЕГО СТАРОГО styles.css ... */
 /* Базовые настройки */
 body {
     font-family: 'Montserrat', sans-serif;
@@ -14,6 +13,13 @@ body {
     /* Делает шрифт чуть жирнее и естественнее */
     -webkit-font-smoothing: auto;
     -moz-osx-font-smoothing: auto;
+}
+
+/* Оптимизация рендеринга текста для плавной анимации */
+h1, p, span, button {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* --- Анимация кнопки (Блик) --- */
@@ -129,4 +135,37 @@ body {
     .hint-text {
         font-size: 28px; /* Меняй на любое число */
     }
+}
+
+/* --- КРАСИВЫЕ СКРОЛЛБАРЫ --- */
+
+/* Для Webkit (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Для Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Скрываем главный скроллбар (на самой странице) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
