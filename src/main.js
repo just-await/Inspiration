@@ -192,7 +192,7 @@ btnConfirmDelete.addEventListener('click', async () => {
 
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
-        setTimeout(() => showResetPasswordModal(), 500);
+        showResetPasswordModal();
     }
     if (session && session.user) {
         currentUser = session.user;
@@ -253,28 +253,6 @@ resetPasswordForm.addEventListener('submit', async (e) => {
         resetSubmitBtn.textContent = "Сохранить пароль";
     }
 });
-
-// ПРОВЕРКА: пришёл ли пользователь по ссылке сброса пароля (PKCE flow)
-async function checkPasswordRecovery() {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-
-    if (!code) return; // обычная загрузка — ничего не делаем
-
-    // Обмениваем code на сессию
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (error) {
-        showToast("Ссылка недействительна или устарела", 'error');
-        return;
-    }
-
-    // Чистим URL от ?code=...
-    window.history.replaceState(null, '', window.location.pathname);
-
-    // Показываем модалку сброса пароля
-    showResetPasswordModal();
-}
 
 // ЛОГИКА ВКЛАДОК
 function setAuthMode(mode) {
@@ -740,7 +718,6 @@ async function handleGenerate() {
 
 // --- ЗАПУСК ---
 initParticles();
-checkPasswordRecovery();
 
 (async () => {
     setTimeout(() => {
