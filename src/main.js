@@ -194,6 +194,15 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
         showResetPasswordModal();
     }
+
+    if (event === 'SIGNED_IN') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'recovery') {
+            window.history.replaceState(null, '', window.location.pathname);
+            showResetPasswordModal();
+        }
+    }
+
     if (session && session.user) {
         currentUser = session.user;
         profileBtn.classList.add('ring-2', 'ring-green-400');
@@ -360,7 +369,7 @@ authForm.addEventListener('submit', async (e) => {
 
         } else if (authMode === 'reset') {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + window.location.pathname, 
+                redirectTo: window.location.origin + window.location.pathname + '?mode=recovery',
             });
             if (error) throw error;
 
