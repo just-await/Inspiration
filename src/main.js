@@ -7,9 +7,7 @@ const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 const ANIMATION_DURATION = 900; 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-        flowType: 'pkce'
-    }
+    auth: { flowType: 'pkce' }
 });
 
 // --- ЭЛЕМЕНТЫ DOM ---
@@ -83,6 +81,13 @@ const deleteAccountContent = document.getElementById('delete-account-content');
 const btnCancelDelete = document.getElementById('btn-cancel-delete');
 const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 
+// Новое окно удаления цитаты
+const deleteQuoteModal = document.getElementById('delete-quote-modal');
+const deleteQuoteContent = document.getElementById('delete-quote-content');
+const deleteQuoteWarning = document.getElementById('delete-quote-warning');
+const btnCancelDeleteQuote = document.getElementById('btn-cancel-delete-quote');
+const btnConfirmDeleteQuote = document.getElementById('btn-confirm-delete-quote');
+
 // Профиль Drawer & Настройки
 const profileDrawer = document.getElementById('profile-drawer');
 const profileDrawerOverlay = document.getElementById('profile-drawer-overlay');
@@ -107,6 +112,7 @@ let quoteQueue =[];
 let authMode = 'login'; 
 let currentUser = null; 
 let currentUsername = "Пользователь";
+let quoteToDeleteId = null; // Хранит ID цитаты для удаления
 
 const FALLBACK_QUOTE = {
     text: "Интернет пропал, но твоя сила воли — на месте.",
@@ -185,23 +191,63 @@ btnConfirmDelete.addEventListener('click', async () => {
     }
 });
 
+// Удаление цитаты
+function openDeleteQuoteModal(quoteId, isApproved) {
+    quoteToDeleteId = quoteId;
+    
+    if (isApproved) {
+        deleteQuoteWarning.textContent = "Эта цитата будет навсегда удалена с сайта и перестанет выпадать другим пользователям.";
+    } else {
+        deleteQuoteWarning.textContent = "Вы уверены, что хотите удалить эту отклоненную цитату из вашей истории?";
+    }
+
+    deleteQuoteModal.classList.remove('opacity-0', 'pointer-events-none');
+    deleteQuoteContent.classList.remove('scale-95');
+    deleteQuoteContent.classList.add('scale-100');
+}
+
+function closeDeleteQuoteModal() {
+    deleteQuoteModal.classList.add('opacity-0', 'pointer-events-none');
+    deleteQuoteContent.classList.remove('scale-100');
+    deleteQuoteContent.classList.add('scale-95');
+    setTimeout(() => { quoteToDeleteId = null; }, 300);
+}
+
+btnCancelDeleteQuote.addEventListener('click', closeDeleteQuoteModal);
+
+btnConfirmDeleteQuote.addEventListener('click', async () => {
+    if (!quoteToDeleteId) return;
+    btnConfirmDeleteQuote.disabled = true;
+    
+    try {
+        const { error } = await supabase
+            .from('quotes')
+            .delete()
+            .eq('id', quoteToDeleteId);
+            
+        if (error) throw error;
+
+        showToast("Цитата успешно удалена", "success");
+        closeDeleteQuoteModal();
+        loadUserQuotes(); // Перезагружаем список
+    } catch (err) {
+        showToast("Ошибка при удалении", "error");
+    } finally {
+        btnConfirmDeleteQuote.disabled = false;
+    }
+});
+
 
 // ==========================================
 // АВТОРИЗАЦИЯ
 // ==========================================
 
 supabase.auth.onAuthStateChange((event, session) => {
-    // Старый метод (оставляем для надежности)
-    if (event === 'PASSWORD_RECOVERY') {
-        showResetPasswordModal();
-    }
+    if (event === 'PASSWORD_RECOVERY') showResetPasswordModal();
 
-    // НОВЫЙ МЕТОД ДЛЯ PKCE FLOW:
-    // Когда Supabase молча нас авторизовал по ссылке, мы проверяем флаг mode=recovery
     if (event === 'SIGNED_IN') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'recovery') {
-            // Очищаем URL, чтобы окно не всплывало при обновлении страницы
             window.history.replaceState(null, '', window.location.pathname);
             showResetPasswordModal();
         }
@@ -236,7 +282,6 @@ function showResetPasswordModal() {
         resetPasswordContent.classList.add('scale-100');
     }, 10);
 }
-
 function closeResetPasswordModal() {
     resetPasswordModal.classList.add('opacity-0');
     resetPasswordContent.classList.remove('scale-100');
@@ -281,6 +326,7 @@ function setAuthMode(mode) {
         tabLogin.classList.replace('text-white/40', 'text-white');
         tabRegister.classList.replace('border-purple-500', 'border-transparent');
         tabRegister.classList.replace('text-white', 'text-white/40');
+        
         authNameGroup.classList.add('hidden');
         authNameInput.required = false;
         authPasswordGroup.classList.remove('hidden');
@@ -296,6 +342,7 @@ function setAuthMode(mode) {
         tabRegister.classList.replace('text-white/40', 'text-white');
         tabLogin.classList.replace('border-purple-500', 'border-transparent');
         tabLogin.classList.replace('text-white', 'text-white/40');
+        
         authNameGroup.classList.remove('hidden');
         authNameInput.required = true;
         authPasswordGroup.classList.remove('hidden');
@@ -311,6 +358,7 @@ function setAuthMode(mode) {
         authNameInput.required = false;
         authPasswordGroup.classList.add('hidden'); 
         authPasswordInput.required = false;
+        
         backToLoginWrapper.classList.remove('hidden');
         authSubmitBtn.textContent = "Отправить ссылку для сброса";
     }
@@ -370,7 +418,6 @@ authForm.addEventListener('submit', async (e) => {
 
         } else if (authMode === 'reset') {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                // ДОБАВЛЕН ФЛАГ ?mode=recovery СЮДА!
                 redirectTo: window.location.origin + window.location.pathname + '?mode=recovery',
             });
             if (error) throw error;
@@ -428,9 +475,10 @@ closeAuthModalBtn.addEventListener('click', closeAuthModal);
 async function loadUserQuotes() {
     userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
     
+    // ВАЖНО: Добавили выборку поля id для удаления
     const { data, error } = await supabase
         .from('quotes')
-        .select('text, is_approved, status, rejection_reason')
+        .select('id, text, is_approved, status, rejection_reason')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
@@ -457,11 +505,25 @@ async function loadUserQuotes() {
             reasonHtml = `<div class="mt-3 text-xs text-red-200/90 bg-red-500/20 p-2.5 rounded-md border border-red-500/30 leading-relaxed"><b>Причина:</b> ${quote.rejection_reason}</div>`;
         }
 
+        // Если статус не pending, добавляем кнопку-крестик
+        let deleteBtnHtml = '';
+        if (currentStatus === 'approved' || currentStatus === 'rejected') {
+            deleteBtnHtml = `
+                <button class="delete-quote-btn absolute top-3 right-3 text-white/20 hover:text-red-400 transition-colors" data-id="${quote.id}" data-approved="${currentStatus === 'approved'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+        }
+
         const quoteEl = document.createElement('div');
         quoteEl.className = 'bg-white/5 border border-white/10 rounded-lg p-4 relative flex flex-col w-full overflow-hidden';
         
+        // Добавлено pr-8 чтобы текст не наезжал на крестик
         quoteEl.innerHTML = `
-            <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap">"${quote.text}"</p>
+            ${deleteBtnHtml}
+            <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap pr-6">"${quote.text}"</p>
             <div class="flex items-center justify-between text-xs font-semibold">
                 <span class="${statusColor} flex items-center gap-1">${statusIcon} ${statusText}</span>
             </div>
@@ -470,6 +532,16 @@ async function loadUserQuotes() {
         userQuotesList.appendChild(quoteEl);
     });
 }
+
+// Делегирование событий: слушаем клики по крестику внутри списка
+userQuotesList.addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-quote-btn');
+    if (deleteBtn) {
+        const quoteId = deleteBtn.dataset.id;
+        const isApproved = deleteBtn.dataset.approved === 'true';
+        openDeleteQuoteModal(quoteId, isApproved);
+    }
+});
 
 function openProfileDrawer() {
     profileDrawerOverlay.classList.remove('hidden');
