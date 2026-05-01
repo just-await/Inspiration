@@ -191,17 +191,13 @@ btnConfirmDelete.addEventListener('click', async () => {
 // ==========================================
 
 supabase.auth.onAuthStateChange((event, session) => {
-    // Старый метод (оставляем для надежности)
     if (event === 'PASSWORD_RECOVERY') {
         showResetPasswordModal();
     }
 
-    // НОВЫЙ МЕТОД ДЛЯ PKCE FLOW:
-    // Когда Supabase молча нас авторизовал по ссылке, мы проверяем флаг mode=recovery
     if (event === 'SIGNED_IN') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'recovery') {
-            // Очищаем URL, чтобы окно не всплывало при обновлении страницы
             window.history.replaceState(null, '', window.location.pathname);
             showResetPasswordModal();
         }
@@ -281,6 +277,7 @@ function setAuthMode(mode) {
         tabLogin.classList.replace('text-white/40', 'text-white');
         tabRegister.classList.replace('border-purple-500', 'border-transparent');
         tabRegister.classList.replace('text-white', 'text-white/40');
+        
         authNameGroup.classList.add('hidden');
         authNameInput.required = false;
         authPasswordGroup.classList.remove('hidden');
@@ -296,6 +293,7 @@ function setAuthMode(mode) {
         tabRegister.classList.replace('text-white/40', 'text-white');
         tabLogin.classList.replace('border-purple-500', 'border-transparent');
         tabLogin.classList.replace('text-white', 'text-white/40');
+        
         authNameGroup.classList.remove('hidden');
         authNameInput.required = true;
         authPasswordGroup.classList.remove('hidden');
@@ -311,6 +309,7 @@ function setAuthMode(mode) {
         authNameInput.required = false;
         authPasswordGroup.classList.add('hidden'); 
         authPasswordInput.required = false;
+        
         backToLoginWrapper.classList.remove('hidden');
         authSubmitBtn.textContent = "Отправить ссылку для сброса";
     }
@@ -370,7 +369,6 @@ authForm.addEventListener('submit', async (e) => {
 
         } else if (authMode === 'reset') {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                // ДОБАВЛЕН ФЛАГ ?mode=recovery СЮДА!
                 redirectTo: window.location.origin + window.location.pathname + '?mode=recovery',
             });
             if (error) throw error;
