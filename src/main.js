@@ -2,7 +2,7 @@ import './style.css'
 import { createClient } from '@supabase/supabase-js'
 
 // --- НАСТРОЙКИ ---
-const SUPABASE_URL = 'https://api.insp1ration.space'; 
+const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 const ANIMATION_DURATION = 900; 
 
