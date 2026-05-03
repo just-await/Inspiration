@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet"> 
-  <script type="module" crossorigin src="./assets/index-_P5Bc8ud.js"></script>
+  <script type="module" crossorigin src="./assets/index-BvGQ50s5.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-CBMUr2Da.css">
 </head>
 <body class="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-black text-white selection:bg-purple-500 selection:text-white overflow-hidden font-montserrat">
@@ -54,7 +54,7 @@
                 <!-- МИНИМАЛИСТИЧНАЯ КНОПКА ФИЛЬТРА -->
                 <button id="open-filter-btn" class="z-20 mb-8 flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white/80 hover:text-white backdrop-blur-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-400"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
-                    <span id="current-category-label">Все фразы</span>
+                    <span id="current-category-label">Всё подряд</span>
                 </button>
 
                 <div id="quote-wrapper" class="relative text-center w-full initial-hidden cursor-pointer group select-none flex flex-col items-center">
@@ -98,7 +98,7 @@
                 </button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button class="filter-option bg-purple-500/20 border border-purple-500 text-white rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="all">Всё подряд</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="all">Всё подряд</button>
                 <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="motivation">🔥 Мотивация</button>
                 <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="humor">😂 Юмор</button>
                 <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="wisdom">🦉 Мудрость</button>
@@ -133,7 +133,6 @@
                             <option value="love" class="bg-slate-900">❤️ Любовь</option>
                             <option value="media" class="bg-slate-900">🎬 Из медиа</option>
                         </select>
-                        <!-- Динамическое описание категории -->
                         <p id="category-desc-text" class="text-xs text-purple-300/70 mt-1.5 ml-1 font-medium">Ваши личные инсайты и наблюдения за миром.</p>
                     </div>
 
@@ -166,8 +165,7 @@
                     </button>
                 </form>
             </div>
-
-            <!-- ИСПРАВЛЕННЫЙ БЛОК УСПЕХА -->
+            
             <div id="success-step" class="hidden text-center py-4 flex flex-col items-center">
                 <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -175,10 +173,11 @@
                 <h3 class="text-xl font-bold text-white mb-2">Отправлено на модерацию!</h3>
                 <p class="text-white/60 text-sm mb-6 leading-relaxed">Цитата появится в вашем профиле.</p>
                 
+                <!-- ОБНОВЛЕННАЯ КНОПКА ТЕЛЕГРАМ -->
                 <div class="w-full flex flex-col gap-3">
-                    <a id="tg-bot-link" href="#" target="_blank" class="w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-3.5 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-lg">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                        Отследить в Telegram (по желанию)
+                    <a id="tg-bot-link" href="#" target="_blank" class="w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-3.5 rounded-lg transition-colors flex justify-center items-center gap-3 shadow-lg">
+                        <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        <span>Отследить в Telegram</span>
                     </a>
                     
                     <button id="close-success-btn" class="w-full py-2.5 text-white/50 hover:text-white transition-colors text-sm font-semibold">
@@ -189,7 +188,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ (БЕЗ ИЗМЕНЕНИЙ) -->
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
     <div id="auth-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div id="auth-modal-content" class="relative w-[90vw] max-w-md bg-[#0f172a] border border-white/10 rounded-2xl p-8 shadow-2xl transform scale-95 transition-transform duration-300">
             <button id="close-auth-modal" class="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">
@@ -293,7 +292,6 @@
             </div>
         </div>
 
-        <!-- Подвал -->
         <div class="p-6 border-t border-white/10 bg-black/20 flex flex-col gap-3">
             <button id="open-settings-btn" class="w-full py-3 rounded-lg bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors font-bold flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
