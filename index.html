@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>Inspiration | Твой заряд вдохновения</title>
     <meta name="description" content="Эстетичный генератор вдохновляющих фраз. Получи искру вдохновения или поделись своей мудростью.">
     <meta name="theme-color" content="#0f172a">
-
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://твой-сайт.com/">
     <meta property="og:title" content="Free Inspiration">
     <meta property="og:description" content="Нажми, чтобы вдохновиться!✨">
     <meta property="og:image" content="og-image.jpg">
-
     <link rel="icon" href="favicon.png" sizes="any">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +21,7 @@
 
     <div id="particles-container" class="absolute inset-0 overflow-hidden pointer-events-none z-0"></div>
     
+    <!-- КНОПКА ПРОФИЛЯ -->
     <div class="fixed top-6 left-6 z-50 flex items-center gap-4 pointer-events-none">
         <button id="profile-btn" class="pointer-events-auto group flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6 md:w-7 md:h-7 text-white transition-transform duration-300">
@@ -32,6 +30,7 @@
         </button>
     </div>
 
+    <!-- КНОПКА ДОБАВИТЬ -->
     <div class="fixed top-6 right-6 z-50">
         <div id="add-hint" class="absolute right-full top-1/2 -translate-y-1/2 mt-3 md:mt-8 mr-4 flex flex-col items-end opacity-0 translate-x-4 transition-all duration-1000 delay-500 pointer-events-none w-max">
             <span class="hint-text text-right tracking-wide whitespace-nowrap mb-1">предложить свою фразу</span>
@@ -44,10 +43,19 @@
         </button>
     </div>
 
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
     <div class="relative z-10 w-full h-[100dvh] flex flex-col bg-transparent overflow-hidden md:justify-center">
         <div class="w-full pt-28 flex-shrink-0 md:hidden"></div>
         <div class="w-full flex-1 md:flex-none flex flex-col justify-center items-center px-4 overflow-y-auto md:overflow-hidden overflow-x-hidden no-scrollbar min-h-0">
+            
             <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col items-center py-4">
+                
+                <!-- МИНИМАЛИСТИЧНАЯ КНОПКА ФИЛЬТРА -->
+                <button id="open-filter-btn" class="z-20 mb-8 flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white/80 hover:text-white backdrop-blur-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-400"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
+                    <span id="current-category-label">Все фразы</span>
+                </button>
+
                 <div id="quote-wrapper" class="relative text-center w-full initial-hidden cursor-pointer group select-none flex flex-col items-center">
                     <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-6 transition-colors duration-500 group-hover:text-white/60 shrink-0">нажми чтобы скопировать</p>
                     <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-4 break-words"></h1>
@@ -55,6 +63,7 @@
                     <div class="w-32 h-1.5 bg-white/20 mx-auto mt-6 rounded-full group-hover:bg-white/50 transition-colors duration-500 shrink-0"></div>
                 </div>
             </div>
+
         </div>
         <div class="w-full flex justify-center pb-12 pt-6 flex-shrink-0 z-20 md:pb-0 md:pt-0 md:mt-20">
             <button id="magic-btn" class="
@@ -78,6 +87,28 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО ВЫБОРА КАТЕГОРИИ -->
+    <div id="filter-modal" class="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div id="filter-modal-content" class="relative w-[90vw] max-w-lg bg-[#0f172a] border border-white/10 rounded-2xl p-6 shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Выбрать категорию</h3>
+                <button id="close-filter-btn" class="text-white/40 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button class="filter-option bg-purple-500/20 border border-purple-500 text-white rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="all">Всё подряд</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="motivation">🔥 Мотивация</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="humor">😂 Юмор</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="wisdom">🦉 Мудрость</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="absurd">🤪 Абсурд</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="love">❤️ Любовь</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="media">🎬 Из медиа</button>
+                <button class="filter-option bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-xl py-3 px-4 text-left font-medium transition-colors" data-category="thoughts">💭 Мысли вслух</button>
+            </div>
+        </div>
+    </div>
+
     <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ЦИТАТЫ -->
     <div id="modal-overlay" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div id="modal-content" class="relative w-[90vw] max-w-md bg-[#0f172a] border border-white/10 rounded-2xl p-8 shadow-2xl transform scale-95 transition-transform duration-300">
@@ -87,11 +118,40 @@
             <div id="form-step">
                 <h2 class="text-2xl font-bold mb-1 text-white">Добавить искру</h2>
                 <p class="text-sm text-white/50 mb-6">Поделитесь мудростью с миром.</p>
+                
                 <form id="quote-form" class="space-y-4">
-                    <div class="bg-white/5 border border-white/10 rounded-lg px-4 py-3 flex items-center justify-between">
-                        <span class="text-white/40 text-xs uppercase tracking-wider">Автор</span>
-                        <span id="display-author-name" class="text-white font-bold tracking-wide">...</span>
+                    <!-- Выбор категории с описанием -->
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">Категория</label>
+                        <select id="input-category" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none cursor-pointer">
+                            <option value="thoughts" class="bg-slate-900" selected>💭 Мысли вслух</option>
+                            <option value="motivation" class="bg-slate-900">🔥 Мотивация</option>
+                            <option value="humor" class="bg-slate-900">😂 Юмор</option>
+                            <option value="wisdom" class="bg-slate-900">🦉 Мудрость</option>
+                            <option value="absurd" class="bg-slate-900">🤪 Абсурд</option>
+                            <option value="love" class="bg-slate-900">❤️ Любовь</option>
+                            <option value="media" class="bg-slate-900">🎬 Из медиа</option>
+                        </select>
+                        <!-- Динамическое описание категории -->
+                        <p id="category-desc-text" class="text-xs text-purple-300/70 mt-1.5 ml-1 font-medium">Ваши личные инсайты и наблюдения за миром.</p>
                     </div>
+
+                    <div class="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col gap-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="is-external-author" class="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-900">
+                            <span class="text-sm text-white/80 select-none">Это цитата другого человека / из медиа</span>
+                        </label>
+                        
+                        <div id="default-author-block" class="flex items-center justify-between mt-1">
+                            <span class="text-white/40 text-xs uppercase tracking-wider">Автор</span>
+                            <span id="display-author-name" class="text-white font-bold tracking-wide">...</span>
+                        </div>
+
+                        <div id="custom-author-block" class="hidden mt-1">
+                            <input type="text" id="input-custom-author" placeholder="Например: Киану Ривз" maxlength="50" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all">
+                        </div>
+                    </div>
+
                     <div>
                         <div class="flex justify-between mb-1">
                             <label class="block text-xs uppercase tracking-wider text-white/40">Ваша фраза</label>
@@ -105,23 +165,30 @@
                     </button>
                 </form>
             </div>
-            <div id="success-step" class="hidden text-center py-4">
-                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+
+            <!-- ИСПРАВЛЕННЫЙ БЛОК УСПЕХА -->
+            <div id="success-step" class="hidden text-center py-4 flex flex-col items-center">
+                <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <h3 class="text-xl font-bold text-white mb-2">Отправлено на модерацию!</h3>
-                <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-6 mt-4">
-                    <p class="text-blue-200 text-xs font-medium leading-relaxed">💡 <b>Опционально:</b> Статус цитаты доступен в вашем профиле на сайте. Если хотите получать мгновенные уведомления, подключите нашего Telegram-бота.</p>
+                <p class="text-white/60 text-sm mb-6 leading-relaxed">Цитата появится в вашем профиле.</p>
+                
+                <div class="w-full flex flex-col gap-3">
+                    <a id="tg-bot-link" href="#" target="_blank" class="w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-3.5 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-lg">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        Отследить в Telegram (по желанию)
+                    </a>
+                    
+                    <button id="close-success-btn" class="w-full py-2.5 text-white/50 hover:text-white transition-colors text-sm font-semibold">
+                        Просто закрыть
+                    </button>
                 </div>
-                <a href="https://t.me/MyInspoMod_bot" target="_blank" class="block w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                    Подключить бота
-                </a>
             </div>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ (БЕЗ ИЗМЕНЕНИЙ) -->
     <div id="auth-modal-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div id="auth-modal-content" class="relative w-[90vw] max-w-md bg-[#0f172a] border border-white/10 rounded-2xl p-8 shadow-2xl transform scale-95 transition-transform duration-300">
             <button id="close-auth-modal" class="absolute top-4 right-4 text-white/40 hover:text-white transition-colors">

@@ -1,7 +1,6 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
 
-// --- НАСТРОЙКИ ---
 const SUPABASE_URL = 'https://brinoaifolxiuyczysfh.supabase.co'; 
 const SUPABASE_KEY = 'sb_publishable_T_alRtXRkt4EvMghf6eJHw_VI5aIs6b';
 const ANIMATION_DURATION = 900; 
@@ -10,7 +9,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { flowType: 'pkce' }
 });
 
-// --- ЭЛЕМЕНТЫ DOM ---
+const CATEGORIES = {
+    'all': 'Всё подряд',
+    'motivation': '🔥 Мотивация',
+    'humor': '😂 Юмор',
+    'wisdom': '🦉 Мудрость',
+    'absurd': '🤪 Абсурд',
+    'love': '❤️ Любовь',
+    'media': '🎬 Из медиа',
+    'thoughts': '💭 Мысли вслух'
+};
+
+const CATEGORY_DESCRIPTIONS = {
+    'thoughts': 'Ваши личные инсайты и наблюдения за миром.',
+    'motivation': 'Фразы, заставляющие встать с дивана и действовать.',
+    'humor': 'Потому что без смеха в этом мире не выжить.',
+    'wisdom': 'Глубокие философские мысли, проверенные временем.',
+    'absurd': 'Волк не тигр, но в цирке не выступает. Постирония и дичь.',
+    'love': 'О самом главном, нежном и разбивающем сердце.',
+    'media': 'Легендарные строчки из кино, сериалов и книг.'
+};
+
 const quoteWrapper = document.getElementById('quote-wrapper');
 const quoteText = document.getElementById('quote-text');
 const quoteAuthor = document.getElementById('quote-author');
@@ -34,6 +53,23 @@ const submitBtn = document.getElementById('submit-btn');
 const submitLoader = document.getElementById('submit-loader');
 const displayAuthorName = document.getElementById('display-author-name');
 const addHint = document.getElementById('add-hint');
+const closeSuccessBtn = document.getElementById('close-success-btn'); // Добавлено
+
+// Категории и внешний автор
+const inputCategory = document.getElementById('input-category');
+const categoryDescText = document.getElementById('category-desc-text'); // Добавлено
+const isExternalAuthorCheckbox = document.getElementById('is-external-author');
+const defaultAuthorBlock = document.getElementById('default-author-block');
+const customAuthorBlock = document.getElementById('custom-author-block');
+const inputCustomAuthor = document.getElementById('input-custom-author');
+
+// Фильтр на главной
+const openFilterBtn = document.getElementById('open-filter-btn');
+const filterModal = document.getElementById('filter-modal');
+const filterModalContent = document.getElementById('filter-modal-content');
+const closeFilterBtn = document.getElementById('close-filter-btn');
+const filterOptions = document.querySelectorAll('.filter-option');
+const currentCategoryLabel = document.getElementById('current-category-label');
 
 // Авторизация
 const profileBtn = document.getElementById('profile-btn');
@@ -81,7 +117,6 @@ const deleteAccountContent = document.getElementById('delete-account-content');
 const btnCancelDelete = document.getElementById('btn-cancel-delete');
 const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 
-// Новое окно удаления цитаты
 const deleteQuoteModal = document.getElementById('delete-quote-modal');
 const deleteQuoteContent = document.getElementById('delete-quote-content');
 const deleteQuoteWarning = document.getElementById('delete-quote-warning');
@@ -112,11 +147,13 @@ let quoteQueue =[];
 let authMode = 'login'; 
 let currentUser = null; 
 let currentUsername = "Пользователь";
-let quoteToDeleteId = null; // Хранит ID цитаты для удаления
+let quoteToDeleteId = null; 
+let currentCategoryFilter = 'all';
 
 const FALLBACK_QUOTE = {
     text: "Интернет пропал, но твоя сила воли — на месте.",
-    author: "Система"
+    author: "Система",
+    is_external_author: true
 };
 
 let userSessionId = localStorage.getItem('user_session_id');
@@ -126,9 +163,55 @@ if (!userSessionId) {
 }
 
 // ==========================================
+// ФИЛЬТРЫ НА ГЛАВНОЙ (НОВАЯ ЛОГИКА)
+// ==========================================
+function openFilterModal() {
+    filterModal.classList.remove('hidden');
+    setTimeout(() => {
+        filterModal.classList.remove('opacity-0');
+        filterModalContent.classList.remove('scale-95');
+        filterModalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeFilterModal() {
+    filterModal.classList.add('opacity-0');
+    filterModalContent.classList.remove('scale-100');
+    filterModalContent.classList.add('scale-95');
+    setTimeout(() => {
+        filterModal.classList.add('hidden');
+    }, 300);
+}
+
+openFilterBtn.addEventListener('click', openFilterModal);
+closeFilterBtn.addEventListener('click', closeFilterModal);
+filterModal.addEventListener('click', (e) => {
+    if (e.target === filterModal) closeFilterModal();
+});
+
+filterOptions.forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const selectedCat = btn.dataset.category;
+        if (currentCategoryFilter === selectedCat) {
+            closeFilterModal();
+            return;
+        }
+        
+        currentCategoryFilter = selectedCat;
+        currentCategoryLabel.textContent = CATEGORIES[selectedCat] || 'Все фразы';
+        
+        closeFilterModal();
+        
+        // Сброс очереди и загрузка новой цитаты из категории
+        quoteQueue =[];
+        nextQuoteObj = null;
+        await handleGenerate(); 
+    });
+});
+
+// ==========================================
 // КАСТОМНЫЕ УВЕДОМЛЕНИЯ И ОКНА
 // ==========================================
-
 function showToast(message, type = 'success') {
     toastMessage.textContent = message;
     toastIcon.textContent = type === 'success' ? '✅' : '❌';
@@ -141,7 +224,6 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// Выход
 function openLogoutModal() {
     logoutModal.classList.remove('opacity-0', 'pointer-events-none');
     logoutModalContent.classList.remove('scale-95');
@@ -159,7 +241,6 @@ btnConfirmLogout.addEventListener('click', async () => {
     showToast("Вы успешно вышли из аккаунта");
 });
 
-// Удаление аккаунта
 function openDeleteModal() {
     deleteAccountModal.classList.remove('opacity-0', 'pointer-events-none');
     deleteAccountContent.classList.remove('scale-95');
@@ -191,16 +272,13 @@ btnConfirmDelete.addEventListener('click', async () => {
     }
 });
 
-// Удаление цитаты
 function openDeleteQuoteModal(quoteId, isApproved) {
     quoteToDeleteId = quoteId;
-    
     if (isApproved) {
         deleteQuoteWarning.textContent = "Эта цитата будет навсегда удалена с сайта и перестанет выпадать другим пользователям.";
     } else {
         deleteQuoteWarning.textContent = "Вы уверены, что хотите удалить эту отклоненную цитату из вашей истории?";
     }
-
     deleteQuoteModal.classList.remove('opacity-0', 'pointer-events-none');
     deleteQuoteContent.classList.remove('scale-95');
     deleteQuoteContent.classList.add('scale-100');
@@ -218,18 +296,12 @@ btnCancelDeleteQuote.addEventListener('click', closeDeleteQuoteModal);
 btnConfirmDeleteQuote.addEventListener('click', async () => {
     if (!quoteToDeleteId) return;
     btnConfirmDeleteQuote.disabled = true;
-    
     try {
-        const { error } = await supabase
-            .from('quotes')
-            .delete()
-            .eq('id', quoteToDeleteId);
-            
+        const { error } = await supabase.from('quotes').delete().eq('id', quoteToDeleteId);
         if (error) throw error;
-
         showToast("Цитата успешно удалена", "success");
         closeDeleteQuoteModal();
-        loadUserQuotes(); // Перезагружаем список
+        loadUserQuotes();
     } catch (err) {
         showToast("Ошибка при удалении", "error");
     } finally {
@@ -241,10 +313,8 @@ btnConfirmDeleteQuote.addEventListener('click', async () => {
 // ==========================================
 // АВТОРИЗАЦИЯ
 // ==========================================
-
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') showResetPasswordModal();
-
     if (event === 'SIGNED_IN') {
         const params = new URLSearchParams(window.location.search);
         if (params.get('mode') === 'recovery') {
@@ -272,7 +342,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-// ОКНО СБРОСА ПАРОЛЯ
 function showResetPasswordModal() {
     closeAuthModal();
     resetPasswordModal.classList.remove('hidden');
@@ -312,7 +381,6 @@ resetPasswordForm.addEventListener('submit', async (e) => {
     }
 });
 
-// ЛОГИКА ВКЛАДОК
 function setAuthMode(mode) {
     authMode = mode;
     authError.classList.add('hidden');
@@ -369,7 +437,6 @@ tabRegister.addEventListener('click', () => setAuthMode('register'));
 forgotPasswordBtn.addEventListener('click', () => setAuthMode('reset'));
 backToLoginBtn.addEventListener('click', () => setAuthMode('login'));
 
-// ОБРАБОТКА ВХОДА ЧЕРЕЗ GOOGLE
 googleLoginBtn.addEventListener('click', async () => {
     try {
         const { error } = await supabase.auth.signInWithOAuth({
@@ -382,7 +449,6 @@ googleLoginBtn.addEventListener('click', async () => {
     }
 });
 
-// ОБРАБОТКА ГЛАВНОЙ ФОРМЫ (EMAIL)
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     authError.classList.add('hidden');
@@ -475,10 +541,9 @@ closeAuthModalBtn.addEventListener('click', closeAuthModal);
 async function loadUserQuotes() {
     userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
     
-    // ВАЖНО: Добавили выборку поля id для удаления
     const { data, error } = await supabase
         .from('quotes')
-        .select('id, text, is_approved, status, rejection_reason')
+        .select('id, text, is_approved, status, rejection_reason, category, admin_note')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
@@ -502,17 +567,21 @@ async function loadUserQuotes() {
 
         let reasonHtml = '';
         if (currentStatus === 'rejected' && quote.rejection_reason) {
-            reasonHtml = `<div class="mt-3 text-xs text-red-200/90 bg-red-500/20 p-2.5 rounded-md border border-red-500/30 leading-relaxed"><b>Причина:</b> ${quote.rejection_reason}</div>`;
+            reasonHtml = `<div class="mt-3 text-xs text-red-200/90 bg-red-500/20 p-2.5 rounded-md border border-red-500/30 leading-relaxed"><b>От модератора:</b> ${quote.rejection_reason}</div>`;
+        }
+        
+        let adminNoteHtml = '';
+        if (quote.admin_note) {
+            adminNoteHtml = `<div class="mt-3 text-xs text-blue-200/90 bg-blue-500/20 p-2.5 rounded-md border border-blue-500/30 leading-relaxed"><b>От модератора:</b> ${quote.admin_note}</div>`;
         }
 
-        // Если статус не pending, добавляем кнопку-крестик
+        const catName = CATEGORIES[quote.category] || '💭 Другое';
+
         let deleteBtnHtml = '';
         if (currentStatus === 'approved' || currentStatus === 'rejected') {
             deleteBtnHtml = `
                 <button class="delete-quote-btn absolute top-3 right-3 text-white/20 hover:text-red-400 transition-colors" data-id="${quote.id}" data-approved="${currentStatus === 'approved'}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             `;
         }
@@ -520,20 +589,20 @@ async function loadUserQuotes() {
         const quoteEl = document.createElement('div');
         quoteEl.className = 'bg-white/5 border border-white/10 rounded-lg p-4 relative flex flex-col w-full overflow-hidden';
         
-        // Добавлено pr-8 чтобы текст не наезжал на крестик
         quoteEl.innerHTML = `
             ${deleteBtnHtml}
+            <span class="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">${catName}</span>
             <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap pr-6">"${quote.text}"</p>
             <div class="flex items-center justify-between text-xs font-semibold">
                 <span class="${statusColor} flex items-center gap-1">${statusIcon} ${statusText}</span>
             </div>
             ${reasonHtml}
+            ${adminNoteHtml}
         `;
         userQuotesList.appendChild(quoteEl);
     });
 }
 
-// Делегирование событий: слушаем клики по крестику внутри списка
 userQuotesList.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('.delete-quote-btn');
     if (deleteBtn) {
@@ -591,7 +660,6 @@ function closeSettingsModal() {
 openSettingsBtn.addEventListener('click', openSettingsModal);
 closeSettingsBtn.addEventListener('click', closeSettingsModal);
 
-// Смена Никнейма
 changeUsernameForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     saveUsernameBtn.disabled = true;
@@ -617,8 +685,26 @@ changeUsernameForm.addEventListener('submit', async (e) => {
 
 
 // ==========================================
-// МОДАЛКА ДОБАВЛЕНИЯ ЦИТАТЫ
+// МОДАЛКА ДОБАВЛЕНИЯ ЦИТАТЫ (С АВТОРОМ)
 // ==========================================
+
+// Динамическое описание категорий
+inputCategory.addEventListener('change', (e) => {
+    const selected = e.target.value;
+    categoryDescText.textContent = CATEGORY_DESCRIPTIONS[selected] || '';
+});
+
+isExternalAuthorCheckbox.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        defaultAuthorBlock.classList.add('hidden');
+        customAuthorBlock.classList.remove('hidden');
+        inputCustomAuthor.required = true;
+    } else {
+        defaultAuthorBlock.classList.remove('hidden');
+        customAuthorBlock.classList.add('hidden');
+        inputCustomAuthor.required = false;
+    }
+});
 
 function openQuoteModal() {
     modalOverlay.classList.remove('hidden');
@@ -641,6 +727,10 @@ function closeQuoteModal() {
             quoteForm.reset();
             charCount.innerText = "0/90";
             charCount.classList.remove('text-red-500');
+            defaultAuthorBlock.classList.remove('hidden');
+            customAuthorBlock.classList.add('hidden');
+            inputCustomAuthor.required = false;
+            categoryDescText.textContent = CATEGORY_DESCRIPTIONS['thoughts']; // Сброс описания
         }, 300);
     }, 300);
 }
@@ -651,14 +741,13 @@ addQuoteBtn.addEventListener('click', () => {
         openAuthModal();
         return;
     }
-    
     displayAuthorName.textContent = currentUsername;
-
     openQuoteModal();
     if (addHint) addHint.classList.add('hidden');
 });
 
 closeModal.addEventListener('click', closeQuoteModal);
+closeSuccessBtn.addEventListener('click', closeQuoteModal); // Кнопка "Закрыть"
 modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeQuoteModal();
 });
@@ -680,9 +769,15 @@ quoteForm.addEventListener('submit', async (e) => {
     submitLoader.classList.remove('hidden');
 
     try {
+        const isExternal = isExternalAuthorCheckbox.checked;
+        const authorName = isExternal ? inputCustomAuthor.value.trim() : currentUsername;
+        const category = inputCategory.value;
+
         const quoteData = { 
             text: text, 
-            author: currentUsername, 
+            author: authorName, 
+            category: category,
+            is_external_author: isExternal,
             session_id: userSessionId,
             user_id: currentUser.id
         };
@@ -692,8 +787,11 @@ quoteForm.addEventListener('submit', async (e) => {
 
         formStep.classList.add('hidden');
         successStep.classList.remove('hidden');
-        const botLinkBtn = successStep.querySelector('a');
-        botLinkBtn.href = `https://t.me/MyInspoMod_bot?start=${userSessionId}`;
+        
+        // Вставляем ссылку в телеграм кнопку (защита от null)
+        const tgBotLink = document.getElementById('tg-bot-link');
+        if(tgBotLink) tgBotLink.href = `https://t.me/MyInspoMod_bot?start=${userSessionId}`;
+        
     } catch (err) {
         console.error(err);
         showToast("Ошибка. Попробуйте позже.", 'error');
@@ -711,18 +809,18 @@ quoteForm.addEventListener('submit', async (e) => {
 
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]];
     }
 }
 
 async function refillQueue() {
     try {
-        const { data, error } = await supabase.rpc('get_all_quote_ids');
+        const { data, error } = await supabase.rpc('get_all_quote_ids', { p_category: currentCategoryFilter });
         if (error) throw error;
         if (!data || data.length === 0) return false;
 
-        quoteQueue = data; 
+        // Вытаскиваем чистые цифры из объектов
+        quoteQueue = data.map(item => typeof item === 'object' && item.id ? item.id : item); 
         shuffleArray(quoteQueue);
         return true;
     } catch (e) {
@@ -730,7 +828,9 @@ async function refillQueue() {
     }
 }
 
-async function fetchOneQuote() {
+async function fetchOneQuote(retryCount = 0) {
+    if (retryCount > 3) return FALLBACK_QUOTE; 
+
     if (quoteQueue.length === 0) {
         const success = await refillQueue();
         if (!success) return FALLBACK_QUOTE;
@@ -748,7 +848,7 @@ async function fetchOneQuote() {
         if (error || !data) throw error;
         return data;
     } catch (e) {
-        return FALLBACK_QUOTE;
+        return fetchOneQuote(retryCount + 1);
     }
 }
 
@@ -773,14 +873,17 @@ async function handleGenerate() {
 
     magicBtn.disabled = true;
     
+    if (!nextQuoteObj) {
+        btnContent.classList.add('hidden');
+        btnLoader.classList.remove('hidden');
+    }
+
     quoteWrapper.classList.remove('fade-in');
     quoteWrapper.classList.add('fade-out');
     quoteAuthor.classList.add('opacity-0', 'translate-y-4');
 
     const performSwitch = async () => {
         if (!nextQuoteObj) {
-            btnContent.classList.add('hidden');
-            btnLoader.classList.remove('hidden');
             nextQuoteObj = await fetchOneQuote();
         }
 
