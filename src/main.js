@@ -39,6 +39,12 @@ const btnLoader = document.getElementById('btn-loader');
 const btnContent = document.getElementById('btn-content');
 const particlesContainer = document.getElementById('particles-container');
 
+// Элементы Лайков
+const quoteActions = document.getElementById('quote-actions');
+const likeBtn = document.getElementById('like-btn');
+const likeIcon = document.getElementById('like-icon');
+const likeCountEl = document.getElementById('like-count');
+
 // Модальное окно цитаты
 const addQuoteBtn = document.getElementById('add-quote-btn');
 const modalOverlay = document.getElementById('modal-overlay');
@@ -121,6 +127,7 @@ const deleteQuoteWarning = document.getElementById('delete-quote-warning');
 const btnCancelDeleteQuote = document.getElementById('btn-cancel-delete-quote');
 const btnConfirmDeleteQuote = document.getElementById('btn-confirm-delete-quote');
 
+// Профиль Drawer & Настройки
 const profileDrawer = document.getElementById('profile-drawer');
 const profileDrawerOverlay = document.getElementById('profile-drawer-overlay');
 const closeProfileBtn = document.getElementById('close-profile-btn');
@@ -128,6 +135,8 @@ const profileGreeting = document.getElementById('profile-greeting');
 const userQuotesList = document.getElementById('user-quotes-list');
 const drawerLogoutBtn = document.getElementById('drawer-logout-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
+const tabMyQuotes = document.getElementById('tab-my-quotes');
+const tabLikedQuotes = document.getElementById('tab-liked-quotes');
 
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -146,11 +155,17 @@ let currentUser = null;
 let currentUsername = "Пользователь";
 let quoteToDeleteId = null; 
 let currentCategoryFilter = 'all';
+let currentProfileTab = 'my_quotes';
+
+let likedQuotes = new Set();
+let myQuotesCache =[]; // Хранит загруженные цитаты для быстрого редактирования
+let editingQuoteId = null; // ID редактируемой цитаты
 
 const FALLBACK_QUOTE = {
     text: "Интернет пропал, но твоя сила воли — на месте.",
     author: "Система",
-    is_external_author: true
+    is_external_author: true,
+    likes_count: 0
 };
 
 let userSessionId = localStorage.getItem('user_session_id');
@@ -160,7 +175,7 @@ if (!userSessionId) {
 }
 
 // ==========================================
-// ФИЛЬТРЫ НА ГЛАВНОЙ (НОВАЯ ЛОГИКА)
+// ФИЛЬТРЫ НА ГЛАВНОЙ
 // ==========================================
 function updateFilterModalUI() {
     filterOptions.forEach(btn => {
@@ -175,7 +190,7 @@ function updateFilterModalUI() {
 }
 
 function openFilterModal() {
-    updateFilterModalUI(); // Обновляем классы перед показом
+    updateFilterModalUI();
     filterModal.classList.remove('hidden');
     setTimeout(() => {
         filterModal.classList.remove('opacity-0');
@@ -311,7 +326,8 @@ btnConfirmDeleteQuote.addEventListener('click', async () => {
         if (error) throw error;
         showToast("Цитата успешно удалена", "success");
         closeDeleteQuoteModal();
-        loadUserQuotes();
+        if (currentProfileTab === 'my_quotes') loadUserQuotes();
+        if (currentProfileTab === 'liked_quotes') loadLikedQuotes();
     } catch (err) {
         showToast("Ошибка при удалении", "error");
     } finally {
@@ -321,7 +337,7 @@ btnConfirmDeleteQuote.addEventListener('click', async () => {
 
 
 // ==========================================
-// АВТОРИЗАЦИЯ
+// АВТОРИЗАЦИЯ И СБРОС ПАРОЛЯ
 // ==========================================
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') showResetPasswordModal();
@@ -337,18 +353,26 @@ supabase.auth.onAuthStateChange((event, session) => {
         currentUser = session.user;
         profileBtn.classList.add('ring-2', 'ring-green-400');
         
-        supabase.from('profiles').select('username').eq('id', currentUser.id).single()
-            .then(({data}) => {
-                if (data && data.username) {
-                    currentUsername = data.username;
-                    profileGreeting.textContent = `Привет, ${currentUsername}!`;
-                }
-            });
+        Promise.all([
+            supabase.from('profiles').select('username').eq('id', currentUser.id).single(),
+            supabase.from('likes').select('quote_id').eq('user_id', currentUser.id)
+        ]).then(([profileRes, likesRes]) => {
+            if (profileRes.data && profileRes.data.username) {
+                currentUsername = profileRes.data.username;
+                profileGreeting.textContent = `Привет, ${currentUsername}!`;
+            }
+            if (likesRes.data) {
+                likedQuotes = new Set(likesRes.data.map(item => item.quote_id));
+                if (currentQuoteObj && currentQuoteObj.id) updateQuoteUI(currentQuoteObj);
+            }
+        });
     } else {
         currentUser = null;
         currentUsername = "Пользователь";
+        likedQuotes.clear(); 
         profileBtn.classList.remove('ring-2', 'ring-green-400');
         profileGreeting.textContent = `Привет!`;
+        if (currentQuoteObj && currentQuoteObj.id) updateQuoteUI(currentQuoteObj);
     }
 });
 
@@ -547,13 +571,36 @@ profileBtn.addEventListener('click', openAuthModal);
 closeAuthModalBtn.addEventListener('click', closeAuthModal);
 
 
-// --- ФУНКЦИИ ЛИЧНОГО КАБИНЕТА ---
+// ==========================================
+// ШТОРКА ПРОФИЛЯ
+// ==========================================
+
+tabMyQuotes.addEventListener('click', () => {
+    if (currentProfileTab === 'my_quotes') return;
+    currentProfileTab = 'my_quotes';
+    tabMyQuotes.classList.replace('text-white/40', 'text-white');
+    tabMyQuotes.classList.replace('border-transparent', 'border-purple-500');
+    tabLikedQuotes.classList.replace('text-white', 'text-white/40');
+    tabLikedQuotes.classList.replace('border-purple-500', 'border-transparent');
+    loadUserQuotes();
+});
+
+tabLikedQuotes.addEventListener('click', () => {
+    if (currentProfileTab === 'liked_quotes') return;
+    currentProfileTab = 'liked_quotes';
+    tabLikedQuotes.classList.replace('text-white/40', 'text-white');
+    tabLikedQuotes.classList.replace('border-transparent', 'border-purple-500');
+    tabMyQuotes.classList.replace('text-white', 'text-white/40');
+    tabMyQuotes.classList.replace('border-purple-500', 'border-transparent');
+    loadLikedQuotes();
+});
+
 async function loadUserQuotes() {
     userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
     
     const { data, error } = await supabase
         .from('quotes')
-        .select('id, text, is_approved, status, rejection_reason, category, admin_note')
+        .select('id, text, is_approved, status, rejection_reason, category, admin_note, likes_count, is_external_author, author')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
@@ -562,49 +609,98 @@ async function loadUserQuotes() {
         return;
     }
 
+    myQuotesCache = data; // Сохраняем в кэш для редактирования
+    renderQuoteList(data, true);
+}
+
+async function loadLikedQuotes() {
+    userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
+    
+    // Делаем Join запрос
+    const { data, error } = await supabase
+        .from('likes')
+        .select('quote_id, quotes (id, text, author, category)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+        userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Вы еще ничего не лайкнули</div>';
+        return;
+    }
+
+    const quotes = data.map(item => item.quotes).filter(q => q !== null);
+    renderQuoteList(quotes, false);
+}
+
+function renderQuoteList(data, isMyQuotes) {
     userQuotesList.innerHTML = '';
     data.forEach(quote => {
-        let statusIcon, statusColor, statusText;
-        const currentStatus = quote.status || (quote.is_approved ? 'approved' : 'pending');
-
-        if (currentStatus === 'approved') {
-            statusIcon = '✅'; statusColor = 'text-green-400'; statusText = 'Одобрено';
-        } else if (currentStatus === 'rejected') {
-            statusIcon = '❌'; statusColor = 'text-red-400'; statusText = 'Отклонено';
-        } else {
-            statusIcon = '⏳'; statusColor = 'text-yellow-400'; statusText = 'На модерации';
-        }
-
+        let statusHtml = '';
         let reasonHtml = '';
-        if (currentStatus === 'rejected' && quote.rejection_reason) {
-            reasonHtml = `<div class="mt-3 text-xs text-red-200/90 bg-red-500/20 p-2.5 rounded-md border border-red-500/30 leading-relaxed"><b>От модератора:</b> ${quote.rejection_reason}</div>`;
-        }
-        
         let adminNoteHtml = '';
-        if (quote.admin_note) {
-            adminNoteHtml = `<div class="mt-3 text-xs text-blue-200/90 bg-blue-500/20 p-2.5 rounded-md border border-blue-500/30 leading-relaxed"><b>От модератора:</b> ${quote.admin_note}</div>`;
+        let deleteBtnHtml = '';
+        let editBtnHtml = '';
+        let likesHtml = '';
+
+        if (isMyQuotes) {
+            let statusIcon, statusColor, statusText;
+            const currentStatus = quote.status || (quote.is_approved ? 'approved' : 'pending');
+
+            if (currentStatus === 'approved') {
+                statusIcon = '✅'; statusColor = 'text-green-400'; statusText = 'Одобрено';
+                
+                likesHtml = `
+                    <div class="flex items-center gap-1.5 text-white/40 bg-white/5 px-2 py-1 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-red-500/80"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" /></svg>
+                        <span class="text-xs font-bold font-mono">${quote.likes_count || 0}</span>
+                    </div>
+                `;
+            } else if (currentStatus === 'rejected') {
+                statusIcon = '❌'; statusColor = 'text-red-400'; statusText = 'Отклонено';
+            } else {
+                statusIcon = '⏳'; statusColor = 'text-yellow-400'; statusText = 'На модерации';
+            }
+
+            statusHtml = `<span class="${statusColor} flex items-center gap-1">${statusIcon} ${statusText}</span>`;
+
+            if (currentStatus === 'rejected' && quote.rejection_reason) {
+                reasonHtml = `<div class="mt-3 text-xs text-red-200/90 bg-red-500/20 p-2.5 rounded-md border border-red-500/30 leading-relaxed"><b>От модератора:</b> ${quote.rejection_reason}</div>`;
+            }
+            if (quote.admin_note) {
+                adminNoteHtml = `<div class="mt-3 text-xs text-blue-200/90 bg-blue-500/20 p-2.5 rounded-md border border-blue-500/30 leading-relaxed"><b>От модератора:</b> ${quote.admin_note}</div>`;
+            }
+            if (currentStatus === 'approved' || currentStatus === 'rejected') {
+                deleteBtnHtml = `
+                    <button class="delete-quote-btn absolute top-3 right-3 text-white/20 hover:text-red-400 transition-colors" data-id="${quote.id}" data-approved="${currentStatus === 'approved'}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                `;
+            }
+            // КНОПКА РЕДАКТИРОВАНИЯ
+            if (currentStatus === 'pending' || currentStatus === 'rejected') {
+                editBtnHtml = `
+                    <button class="edit-quote-btn absolute top-3 right-10 text-white/20 hover:text-blue-400 transition-colors" data-id="${quote.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                    </button>
+                `;
+            }
+        } else {
+            statusHtml = `<span class="text-white/50">© ${quote.author || 'Неизвестен'}</span>`;
         }
 
         const catName = CATEGORIES[quote.category] || '💭 Другое';
-
-        let deleteBtnHtml = '';
-        if (currentStatus === 'approved' || currentStatus === 'rejected') {
-            deleteBtnHtml = `
-                <button class="delete-quote-btn absolute top-3 right-3 text-white/20 hover:text-red-400 transition-colors" data-id="${quote.id}" data-approved="${currentStatus === 'approved'}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            `;
-        }
 
         const quoteEl = document.createElement('div');
         quoteEl.className = 'bg-white/5 border border-white/10 rounded-lg p-4 relative flex flex-col w-full overflow-hidden';
         
         quoteEl.innerHTML = `
+            ${editBtnHtml}
             ${deleteBtnHtml}
             <span class="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">${catName}</span>
-            <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap pr-6">"${quote.text}"</p>
-            <div class="flex items-center justify-between text-xs font-semibold">
-                <span class="${statusColor} flex items-center gap-1">${statusIcon} ${statusText}</span>
+            <p class="text-white/80 text-sm leading-relaxed mb-3 break-words break-all whitespace-pre-wrap pr-14">"${quote.text}"</p>
+            <div class="flex items-center justify-between text-xs font-semibold mt-auto pt-2">
+                ${statusHtml}
+                ${likesHtml}
             </div>
             ${reasonHtml}
             ${adminNoteHtml}
@@ -620,6 +716,17 @@ userQuotesList.addEventListener('click', (e) => {
         const isApproved = deleteBtn.dataset.approved === 'true';
         openDeleteQuoteModal(quoteId, isApproved);
     }
+    
+    const editBtn = e.target.closest('.edit-quote-btn');
+    if (editBtn) {
+        const quoteId = editBtn.dataset.id;
+        const quoteToEdit = myQuotesCache.find(q => q.id == quoteId);
+        if (quoteToEdit) {
+            // ЗАКРЫВАЕМ ШТОРКУ ПРОФИЛЯ ПЕРЕД ОТКРЫТИЕМ РЕДАКТИРОВАНИЯ
+            closeProfileDrawer();
+            setTimeout(() => openQuoteModal(quoteToEdit), 300);
+        }
+    }
 });
 
 function openProfileDrawer() {
@@ -628,7 +735,9 @@ function openProfileDrawer() {
         profileDrawerOverlay.classList.remove('opacity-0');
         profileDrawer.classList.remove('translate-x-full');
     }, 10);
-    loadUserQuotes();
+    
+    if (currentProfileTab === 'my_quotes') loadUserQuotes();
+    else loadLikedQuotes();
 }
 
 function closeProfileDrawer() {
@@ -695,7 +804,7 @@ changeUsernameForm.addEventListener('submit', async (e) => {
 
 
 // ==========================================
-// МОДАЛКА ДОБАВЛЕНИЯ ЦИТАТЫ (С АВТОРОМ)
+// МОДАЛКА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ ЦИТАТЫ
 // ==========================================
 
 inputCategory.addEventListener('change', (e) => {
@@ -715,7 +824,54 @@ isExternalAuthorCheckbox.addEventListener('change', (e) => {
     }
 });
 
-function openQuoteModal() {
+// ОБНОВЛЕННАЯ ЛОГИКА ОТКРЫТИЯ (ПОНИМАЕТ РЕДАКТИРОВАНИЕ)
+function openQuoteModal(quoteToEdit = null) {
+    if (quoteToEdit) {
+        editingQuoteId = quoteToEdit.id;
+        document.getElementById('quote-modal-title').textContent = 'Редактировать искру';
+        document.getElementById('quote-modal-subtitle').textContent = 'Внесите правки и отправьте заново.';
+        submitBtn.querySelector('span').textContent = 'Сохранить изменения';
+        
+        inputText.value = quoteToEdit.text;
+        inputCategory.value = quoteToEdit.category || 'thoughts';
+        categoryDescText.textContent = CATEGORY_DESCRIPTIONS[inputCategory.value] || '';
+        
+        if (quoteToEdit.is_external_author) {
+            isExternalAuthorCheckbox.checked = true;
+            defaultAuthorBlock.classList.add('hidden');
+            customAuthorBlock.classList.remove('hidden');
+            inputCustomAuthor.required = true;
+            inputCustomAuthor.value = quoteToEdit.author;
+        } else {
+            isExternalAuthorCheckbox.checked = false;
+            defaultAuthorBlock.classList.remove('hidden');
+            customAuthorBlock.classList.add('hidden');
+            inputCustomAuthor.required = false;
+            inputCustomAuthor.value = '';
+        }
+        
+        const currentLength = inputText.value.length;
+        charCount.innerText = `${currentLength}/90`;
+        if (currentLength >= 90) charCount.classList.add('text-red-500');
+        else charCount.classList.remove('text-red-500');
+        
+    } else {
+        editingQuoteId = null;
+        document.getElementById('quote-modal-title').textContent = 'Добавить искру';
+        document.getElementById('quote-modal-subtitle').textContent = 'Поделитесь мудростью с миром.';
+        submitBtn.querySelector('span').textContent = 'Предложить фразу';
+        quoteForm.reset();
+        
+        isExternalAuthorCheckbox.checked = false;
+        defaultAuthorBlock.classList.remove('hidden');
+        customAuthorBlock.classList.add('hidden');
+        inputCustomAuthor.required = false;
+        categoryDescText.textContent = CATEGORY_DESCRIPTIONS['thoughts'];
+        
+        charCount.innerText = "0/90";
+        charCount.classList.remove('text-red-500');
+    }
+
     modalOverlay.classList.remove('hidden');
     setTimeout(() => {
         modalOverlay.classList.remove('opacity-0');
@@ -733,13 +889,6 @@ function closeQuoteModal() {
         setTimeout(() => {
             formStep.classList.remove('hidden');
             successStep.classList.add('hidden');
-            quoteForm.reset();
-            charCount.innerText = "0/90";
-            charCount.classList.remove('text-red-500');
-            defaultAuthorBlock.classList.remove('hidden');
-            customAuthorBlock.classList.add('hidden');
-            inputCustomAuthor.required = false;
-            categoryDescText.textContent = CATEGORY_DESCRIPTIONS['thoughts'];
         }, 300);
     }, 300);
 }
@@ -751,7 +900,7 @@ addQuoteBtn.addEventListener('click', () => {
         return;
     }
     displayAuthorName.textContent = currentUsername;
-    openQuoteModal();
+    openQuoteModal(null);
     if (addHint) addHint.classList.add('hidden');
 });
 
@@ -768,6 +917,7 @@ inputText.addEventListener('input', () => {
     else charCount.classList.remove('text-red-500');
 });
 
+// ОБНОВЛЕННАЯ ЛОГИКА ОТПРАВКИ (С УЧЕТОМ ОБНОВЛЕНИЯ БАЗЫ)
 quoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = inputText.value.trim();
@@ -786,13 +936,31 @@ quoteForm.addEventListener('submit', async (e) => {
             text: text, 
             author: authorName, 
             category: category,
-            is_external_author: isExternal,
-            session_id: userSessionId,
-            user_id: currentUser.id
+            is_external_author: isExternal
         };
 
-        const { error } = await supabase.from('quotes').insert([quoteData]);
-        if (error) throw error;
+        if (editingQuoteId) {
+            // РЕДАКТИРОВАНИЕ: сбрасываем статус на модерацию
+            quoteData.status = 'pending';
+            quoteData.rejection_reason = null;
+            quoteData.admin_note = null;
+
+            const { error } = await supabase.from('quotes').update(quoteData).eq('id', editingQuoteId);
+            if (error) throw error;
+            
+            document.getElementById('success-title').textContent = 'Изменения сохранены!';
+            document.getElementById('success-subtitle').textContent = 'Цитата отправлена на повторную модерацию.';
+        } else {
+            // СОЗДАНИЕ НОВОЙ
+            quoteData.session_id = userSessionId;
+            quoteData.user_id = currentUser.id;
+            
+            const { error } = await supabase.from('quotes').insert([quoteData]);
+            if (error) throw error;
+            
+            document.getElementById('success-title').textContent = 'Отправлено на модерацию!';
+            document.getElementById('success-subtitle').textContent = 'Цитата появится в вашем профиле.';
+        }
 
         formStep.classList.add('hidden');
         successStep.classList.remove('hidden');
@@ -805,20 +973,19 @@ quoteForm.addEventListener('submit', async (e) => {
         showToast("Ошибка. Попробуйте позже.", 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.querySelector('span').textContent = "Предложить фразу";
+        submitBtn.querySelector('span').textContent = editingQuoteId ? "Сохранить изменения" : "Предложить фразу";
         submitLoader.classList.add('hidden');
     }
 });
 
 
 // ==========================================
-// ЛОГИКА ОЧЕРЕДИ ЦИТАТ И ИНТЕРФЕЙС
+// ЛОГИКА ОЧЕРЕДИ ЦИТАТ, ЛАЙКОВ И ИНТЕРФЕЙС
 // ==========================================
 
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]];
     }
 }
 
@@ -871,10 +1038,66 @@ function updateQuoteUI(quoteObj) {
         quoteAuthor.classList.add('opacity-0', 'translate-y-4');
     }
 
+    // Обновляем лайки
+    likeCountEl.textContent = quoteObj.likes_count || 0;
+    if (likedQuotes.has(quoteObj.id)) {
+        likeIcon.setAttribute('fill', 'currentColor');
+        likeIcon.classList.remove('text-white/40');
+        likeIcon.classList.add('text-red-500');
+    } else {
+        likeIcon.setAttribute('fill', 'none');
+        likeIcon.classList.remove('text-red-500');
+        likeIcon.classList.add('text-white/40');
+    }
+
     quoteWrapper.classList.remove('fade-out', 'initial-hidden');
     quoteWrapper.classList.add('fade-in');
+    if (quoteActions) quoteActions.classList.remove('opacity-0', 'translate-y-4');
     resetCopyHint();
 }
+
+// ЛАЙК: ОБРАБОТЧИК КЛИКА
+likeBtn.addEventListener('click', async (e) => {
+    e.stopPropagation(); 
+    
+    if (!currentUser) {
+        showToast("Войдите в аккаунт, чтобы ставить лайки", "error");
+        openAuthModal();
+        return;
+    }
+    
+    if (!currentQuoteObj || !currentQuoteObj.id) return;
+    
+    const qId = currentQuoteObj.id;
+    const isLiked = likedQuotes.has(qId);
+    let currentCount = parseInt(likeCountEl.textContent) || 0;
+    
+    if (isLiked) {
+        likedQuotes.delete(qId);
+        likeIcon.setAttribute('fill', 'none');
+        likeIcon.classList.replace('text-red-500', 'text-white/40');
+        likeCountEl.textContent = Math.max(0, currentCount - 1);
+        currentQuoteObj.likes_count = Math.max(0, currentCount - 1);
+    } else {
+        likedQuotes.add(qId);
+        likeIcon.setAttribute('fill', 'currentColor');
+        likeIcon.classList.replace('text-white/40', 'text-red-500');
+        likeCountEl.textContent = currentCount + 1;
+        currentQuoteObj.likes_count = currentCount + 1;
+    }
+    
+    try {
+        if (isLiked) {
+            await supabase.from('likes').delete().match({ user_id: currentUser.id, quote_id: qId });
+        } else {
+            await supabase.from('likes').insert([{ user_id: currentUser.id, quote_id: qId }]);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("Ошибка соединения", "error");
+    }
+});
+
 
 async function handleGenerate() {
     if (magicBtn.disabled) return;
@@ -889,6 +1112,7 @@ async function handleGenerate() {
     quoteWrapper.classList.remove('fade-in');
     quoteWrapper.classList.add('fade-out');
     quoteAuthor.classList.add('opacity-0', 'translate-y-4');
+    if (quoteActions) quoteActions.classList.add('opacity-0', 'translate-y-4');
 
     const performSwitch = async () => {
         if (!nextQuoteObj) {
