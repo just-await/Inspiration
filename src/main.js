@@ -341,7 +341,6 @@ btnConfirmDeleteQuote.addEventListener('click', async () => {
 // АВТОРИЗАЦИЯ И СБРОС ПАРОЛЯ
 // ==========================================
 
-// Отдельная функция для обновления только лайков (без перерисовки текста!)
 function updateLikesUI() {
     if (!currentQuoteObj || !currentQuoteObj.id) return;
     likeCountEl.textContent = currentQuoteObj.likes_count || 0;
@@ -1040,11 +1039,12 @@ async function fetchOneQuote(retryCount = 0) {
 function updateQuoteUI(quoteObj) {
     currentQuoteObj = quoteObj;
     
-    // ФЛЮИДНАЯ ТИПОГРАФИКА: Вернули нормальный размер! Уменьшаем только ОЧЕНЬ длинные
+    // ЖЕСТКАЯ ОПТИМИЗАЦИЯ: Убрали transition-all. 
+    // Текст меняет размер моментально, пока он невидим (opacity: 0).
     if (quoteObj.text.length > 70) {
-        quoteText.className = "text-2xl md:text-4xl lg:text-5xl font-black leading-tight text-white pb-2 break-words transition-all duration-300";
+        quoteText.className = "text-2xl md:text-4xl lg:text-5xl font-black leading-tight text-white pb-2 break-words";
     } else {
-        quoteText.className = "text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-2 break-words transition-all duration-300";
+        quoteText.className = "text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-2 break-words";
     }
     
     quoteText.textContent = quoteObj.text;
@@ -1057,10 +1057,13 @@ function updateQuoteUI(quoteObj) {
 
     updateLikesUI();
 
-    quoteWrapper.classList.remove('fade-out', 'initial-hidden');
-    quoteWrapper.classList.add('fade-in');
-    if (quoteMetaRow) quoteMetaRow.classList.remove('opacity-0', 'translate-y-4');
-    resetCopyHint();
+    // Даем браузеру миллисекунду на пересчет макета ДО начала анимации
+    requestAnimationFrame(() => {
+        quoteWrapper.classList.remove('fade-out', 'initial-hidden');
+        quoteWrapper.classList.add('fade-in');
+        if (quoteMetaRow) quoteMetaRow.classList.remove('opacity-0', 'translate-y-4');
+        resetCopyHint();
+    });
 }
 
 // ЛАЙК: ОБРАБОТЧИК КЛИКА
