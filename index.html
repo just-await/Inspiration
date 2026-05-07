@@ -15,8 +15,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet"> 
-  <script type="module" crossorigin src="./assets/index-C7Iy24WK.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Bvav_08K.css">
+  <script type="module" crossorigin src="./assets/index-Cm21nmda.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BJiXYtLG.css">
 </head>
 <body class="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-black text-white selection:bg-purple-500 selection:text-white overflow-hidden font-montserrat">
 
@@ -46,34 +46,54 @@
 
     <!-- ОСНОВНОЙ КОНТЕНТ -->
     <div class="relative z-10 w-full h-[100dvh] flex flex-col bg-transparent overflow-hidden md:justify-center">
-        <div class="w-full pt-28 flex-shrink-0 md:hidden"></div>
+        <div class="w-full pt-24 flex-shrink-0 md:hidden"></div>
         <div class="w-full flex-1 md:flex-none flex flex-col px-4 overflow-y-auto md:overflow-hidden overflow-x-hidden custom-scrollbar min-h-0 relative">
-            <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col items-center py-8 my-auto mx-auto">
+            <div class="w-full max-w-[90vw] lg:max-w-7xl flex flex-col items-center py-6 my-auto mx-auto">
                 
                 <!-- МИНИМАЛИСТИЧНАЯ КНОПКА ФИЛЬТРА -->
-                <button id="open-filter-btn" class="z-20 mb-8 flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white/80 hover:text-white backdrop-blur-sm">
+                <button id="open-filter-btn" class="z-20 mb-6 flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white/80 hover:text-white backdrop-blur-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-purple-400"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
                     <span id="current-category-label">Всё подряд</span>
                 </button>
 
-                <!-- БЛОК ЦИТАТЫ И ЛАЙКОВ -->
+                <!-- БЛОК ЦИТАТЫ И МЕТАДАННЫХ -->
                 <div id="quote-wrapper" class="relative text-center w-full initial-hidden cursor-pointer group select-none flex flex-col items-center">
-                    <p id="copy-hint" class="text-xs md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-6 transition-colors duration-500 group-hover:text-white/60 shrink-0">нажми чтобы скопировать</p>
+                    <p id="copy-hint" class="text-[10px] md:text-sm uppercase tracking-[0.3em] text-white/30 font-semibold mb-3 transition-colors duration-500 group-hover:text-white/60 shrink-0">нажми чтобы скопировать</p>
                     
-                    <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-4 break-words"></h1>
-                    <p id="quote-author" class="text-lg md:text-xl text-purple-400 font-semibold mt-4 opacity-0 transform translate-y-4 transition-all duration-700 italic shrink-0"></p>
+                    <!-- Текст. Вернули нормальные стартовые размеры -->
+                    <h1 id="quote-text" class="text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-2 break-words transition-all duration-300">Ловим вдохновение...</h1>
                     
-                    <!-- КНОПКИ ДЕЙСТВИЙ (ЛАЙК) -->
-                    <div id="quote-actions" class="flex items-center justify-center gap-4 mt-8 opacity-0 transform translate-y-4 transition-all duration-700 shrink-0">
-                        <button id="like-btn" class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all pointer-events-auto active:scale-95">
-                            <svg id="like-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white/40 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                            <span id="like-count" class="text-sm font-bold text-white/60">0</span>
-                        </button>
+                    <!-- СИММЕТРИЧНАЯ СТРОКА (Лайк | Автор | Сохранить) -->
+                    <!-- Изменили логику сетки: 1fr auto 1fr. Автор теперь не обрезается -->
+                    <div id="quote-meta-row" class="w-full grid grid-cols-[1fr_auto_1fr] items-center gap-2 mt-4 opacity-0 transform translate-y-4 transition-all duration-700 shrink-0 px-2 sm:px-8 max-w-3xl">
+                        
+                        <!-- ЛАЙК (Прижат влево) -->
+                        <div class="flex justify-start">
+                            <button id="like-btn" class="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all pointer-events-auto active:scale-95">
+                                <svg id="like-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6 text-white/40 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                <span id="like-count" class="text-xs md:text-sm font-bold text-white/60">0</span>
+                            </button>
+                        </div>
+
+                        <!-- АВТОР (Идеально по центру, без обрезки) -->
+                        <div class="flex justify-center text-center">
+                            <p id="quote-author" class="text-base sm:text-lg md:text-xl text-purple-400 font-semibold italic"></p>
+                        </div>
+
+                        <!-- ИЗБРАННОЕ (Прижато вправо) -->
+                        <div class="flex justify-end">
+                            <button id="save-btn" class="flex items-center justify-center p-1.5 md:p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all pointer-events-auto active:scale-95">
+                                <svg id="save-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6 text-white/40 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                </svg>
+                            </button>
+                        </div>
+
                     </div>
 
-                    <div class="w-32 h-1.5 bg-white/20 mx-auto mt-8 rounded-full group-hover:bg-white/50 transition-colors duration-500 shrink-0"></div>
+                    <div class="w-24 h-1 bg-white/20 mx-auto mt-6 rounded-full group-hover:bg-white/50 transition-colors duration-500 shrink-0"></div>
                 </div>
             </div>
 
@@ -129,7 +149,6 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div id="form-step">
-                <!-- Добавлены ID для смены текста при редактировании -->
                 <h2 id="quote-modal-title" class="text-2xl font-bold mb-1 text-white">Добавить искру</h2>
                 <p id="quote-modal-subtitle" class="text-sm text-white/50 mb-6">Поделитесь мудростью с миром.</p>
                 
@@ -156,11 +175,12 @@
                         
                         <div id="default-author-block" class="flex items-center justify-between mt-1">
                             <span class="text-white/40 text-xs uppercase tracking-wider">Автор</span>
-                            <span id="display-author-name" class="text-white font-bold tracking-wide">...</span>
+                            <span id="display-author-name" class="text-white font-bold tracking-wide truncate max-w-[150px]">...</span>
                         </div>
 
                         <div id="custom-author-block" class="hidden mt-1">
-                            <input type="text" id="input-custom-author" placeholder="Например: Киану Ривз" maxlength="50" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all">
+                            <!-- maxlength 18 -->
+                            <input type="text" id="input-custom-author" placeholder="Например: Киану Ривз" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all">
                         </div>
                     </div>
 
@@ -182,7 +202,6 @@
                 <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <!-- Добавлены ID -->
                 <h3 id="success-title" class="text-xl font-bold text-white mb-2">Отправлено на модерацию!</h3>
                 <p id="success-subtitle" class="text-white/60 text-sm mb-6 leading-relaxed">Цитата появится в вашем профиле.</p>
                 
@@ -222,7 +241,7 @@
                 </div>
                 <div id="auth-name-group" class="hidden">
                     <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">Как вас называть?</label>
-                    <input type="text" id="auth-name" placeholder="Ваш никнейм" maxlength="20" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all">
+                    <input type="text" id="auth-name" placeholder="Ваш никнейм" maxlength="18" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all">
                 </div>
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">Email</label>
@@ -268,7 +287,7 @@
                     Изменить никнейм
                 </h3>
                 <form id="change-username-form" class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="settings-username-input" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all" required maxlength="20">
+                    <input type="text" id="settings-username-input" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-purple-500 transition-all" required maxlength="18">
                     <button type="submit" id="save-username-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all whitespace-nowrap">Сохранить</button>
                 </form>
             </div>
