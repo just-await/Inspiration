@@ -39,11 +39,12 @@ const btnLoader = document.getElementById('btn-loader');
 const btnContent = document.getElementById('btn-content');
 const particlesContainer = document.getElementById('particles-container');
 
-// Элементы Лайков
-const quoteActions = document.getElementById('quote-actions');
+// Элементы Лайков и Мета
+const quoteMetaRow = document.getElementById('quote-meta-row');
 const likeBtn = document.getElementById('like-btn');
 const likeIcon = document.getElementById('like-icon');
 const likeCountEl = document.getElementById('like-count');
+const saveBtn = document.getElementById('save-btn');
 
 // Модальное окно цитаты
 const addQuoteBtn = document.getElementById('add-quote-btn');
@@ -158,8 +159,8 @@ let currentCategoryFilter = 'all';
 let currentProfileTab = 'my_quotes';
 
 let likedQuotes = new Set();
-let myQuotesCache =[]; // Хранит загруженные цитаты для быстрого редактирования
-let editingQuoteId = null; // ID редактируемой цитаты
+let myQuotesCache =[]; 
+let editingQuoteId = null; 
 
 const FALLBACK_QUOTE = {
     text: "Интернет пропал, но твоя сила воли — на месте.",
@@ -339,6 +340,22 @@ btnConfirmDeleteQuote.addEventListener('click', async () => {
 // ==========================================
 // АВТОРИЗАЦИЯ И СБРОС ПАРОЛЯ
 // ==========================================
+
+// Отдельная функция для обновления только лайков (без перерисовки текста!)
+function updateLikesUI() {
+    if (!currentQuoteObj || !currentQuoteObj.id) return;
+    likeCountEl.textContent = currentQuoteObj.likes_count || 0;
+    if (likedQuotes.has(currentQuoteObj.id)) {
+        likeIcon.setAttribute('fill', 'currentColor');
+        likeIcon.classList.remove('text-white/40');
+        likeIcon.classList.add('text-red-500');
+    } else {
+        likeIcon.setAttribute('fill', 'none');
+        likeIcon.classList.remove('text-red-500');
+        likeIcon.classList.add('text-white/40');
+    }
+}
+
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') showResetPasswordModal();
     if (event === 'SIGNED_IN') {
@@ -363,7 +380,7 @@ supabase.auth.onAuthStateChange((event, session) => {
             }
             if (likesRes.data) {
                 likedQuotes = new Set(likesRes.data.map(item => item.quote_id));
-                if (currentQuoteObj && currentQuoteObj.id) updateQuoteUI(currentQuoteObj);
+                updateLikesUI();
             }
         });
     } else {
@@ -372,7 +389,7 @@ supabase.auth.onAuthStateChange((event, session) => {
         likedQuotes.clear(); 
         profileBtn.classList.remove('ring-2', 'ring-green-400');
         profileGreeting.textContent = `Привет!`;
-        if (currentQuoteObj && currentQuoteObj.id) updateQuoteUI(currentQuoteObj);
+        updateLikesUI();
     }
 });
 
@@ -609,14 +626,13 @@ async function loadUserQuotes() {
         return;
     }
 
-    myQuotesCache = data; // Сохраняем в кэш для редактирования
+    myQuotesCache = data; 
     renderQuoteList(data, true);
 }
 
 async function loadLikedQuotes() {
     userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
     
-    // Делаем Join запрос
     const { data, error } = await supabase
         .from('likes')
         .select('quote_id, quotes (id, text, author, category)')
@@ -676,7 +692,6 @@ function renderQuoteList(data, isMyQuotes) {
                     </button>
                 `;
             }
-            // КНОПКА РЕДАКТИРОВАНИЯ
             if (currentStatus === 'pending' || currentStatus === 'rejected') {
                 editBtnHtml = `
                     <button class="edit-quote-btn absolute top-3 right-10 text-white/20 hover:text-blue-400 transition-colors" data-id="${quote.id}">
@@ -722,7 +737,6 @@ userQuotesList.addEventListener('click', (e) => {
         const quoteId = editBtn.dataset.id;
         const quoteToEdit = myQuotesCache.find(q => q.id == quoteId);
         if (quoteToEdit) {
-            // ЗАКРЫВАЕМ ШТОРКУ ПРОФИЛЯ ПЕРЕД ОТКРЫТИЕМ РЕДАКТИРОВАНИЯ
             closeProfileDrawer();
             setTimeout(() => openQuoteModal(quoteToEdit), 300);
         }
@@ -824,7 +838,6 @@ isExternalAuthorCheckbox.addEventListener('change', (e) => {
     }
 });
 
-// ОБНОВЛЕННАЯ ЛОГИКА ОТКРЫТИЯ (ПОНИМАЕТ РЕДАКТИРОВАНИЕ)
 function openQuoteModal(quoteToEdit = null) {
     if (quoteToEdit) {
         editingQuoteId = quoteToEdit.id;
@@ -917,7 +930,6 @@ inputText.addEventListener('input', () => {
     else charCount.classList.remove('text-red-500');
 });
 
-// ОБНОВЛЕННАЯ ЛОГИКА ОТПРАВКИ (С УЧЕТОМ ОБНОВЛЕНИЯ БАЗЫ)
 quoteForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = inputText.value.trim();
@@ -940,7 +952,6 @@ quoteForm.addEventListener('submit', async (e) => {
         };
 
         if (editingQuoteId) {
-            // РЕДАКТИРОВАНИЕ: сбрасываем статус на модерацию
             quoteData.status = 'pending';
             quoteData.rejection_reason = null;
             quoteData.admin_note = null;
@@ -951,7 +962,6 @@ quoteForm.addEventListener('submit', async (e) => {
             document.getElementById('success-title').textContent = 'Изменения сохранены!';
             document.getElementById('success-subtitle').textContent = 'Цитата отправлена на повторную модерацию.';
         } else {
-            // СОЗДАНИЕ НОВОЙ
             quoteData.session_id = userSessionId;
             quoteData.user_id = currentUser.id;
             
@@ -1029,30 +1039,27 @@ async function fetchOneQuote(retryCount = 0) {
 
 function updateQuoteUI(quoteObj) {
     currentQuoteObj = quoteObj;
-    quoteText.textContent = quoteObj.text;
     
+    // ФЛЮИДНАЯ ТИПОГРАФИКА: Вернули нормальный размер! Уменьшаем только ОЧЕНЬ длинные
+    if (quoteObj.text.length > 70) {
+        quoteText.className = "text-2xl md:text-4xl lg:text-5xl font-black leading-tight text-white pb-2 break-words transition-all duration-300";
+    } else {
+        quoteText.className = "text-3xl md:text-5xl lg:text-6xl font-black leading-tight text-white pb-2 break-words transition-all duration-300";
+    }
+    
+    quoteText.textContent = quoteObj.text;
+
     if (quoteObj.author) {
         quoteAuthor.textContent = `© ${quoteObj.author}`;
-        quoteAuthor.classList.remove('opacity-0', 'translate-y-4');
     } else {
-        quoteAuthor.classList.add('opacity-0', 'translate-y-4');
+        quoteAuthor.textContent = '';
     }
 
-    // Обновляем лайки
-    likeCountEl.textContent = quoteObj.likes_count || 0;
-    if (likedQuotes.has(quoteObj.id)) {
-        likeIcon.setAttribute('fill', 'currentColor');
-        likeIcon.classList.remove('text-white/40');
-        likeIcon.classList.add('text-red-500');
-    } else {
-        likeIcon.setAttribute('fill', 'none');
-        likeIcon.classList.remove('text-red-500');
-        likeIcon.classList.add('text-white/40');
-    }
+    updateLikesUI();
 
     quoteWrapper.classList.remove('fade-out', 'initial-hidden');
     quoteWrapper.classList.add('fade-in');
-    if (quoteActions) quoteActions.classList.remove('opacity-0', 'translate-y-4');
+    if (quoteMetaRow) quoteMetaRow.classList.remove('opacity-0', 'translate-y-4');
     resetCopyHint();
 }
 
@@ -1094,10 +1101,13 @@ likeBtn.addEventListener('click', async (e) => {
         }
     } catch (err) {
         console.error(err);
-        showToast("Ошибка соединения", "error");
     }
 });
 
+saveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showToast("Закладки и плейлисты появятся в следующем обновлении!", "success");
+});
 
 async function handleGenerate() {
     if (magicBtn.disabled) return;
@@ -1111,8 +1121,7 @@ async function handleGenerate() {
 
     quoteWrapper.classList.remove('fade-in');
     quoteWrapper.classList.add('fade-out');
-    quoteAuthor.classList.add('opacity-0', 'translate-y-4');
-    if (quoteActions) quoteActions.classList.add('opacity-0', 'translate-y-4');
+    if (quoteMetaRow) quoteMetaRow.classList.add('opacity-0', 'translate-y-4');
 
     const performSwitch = async () => {
         if (!nextQuoteObj) {
@@ -1142,7 +1151,6 @@ initParticles();
         if (addHint) addHint.classList.remove('opacity-0', 'translate-x-4');
     }, 1500);
 
-    quoteText.textContent = "Ловим вдохновение...";
     quoteWrapper.classList.remove('initial-hidden');
     quoteWrapper.classList.add('fade-in');
 
