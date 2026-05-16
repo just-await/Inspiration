@@ -128,6 +128,15 @@ const deleteQuoteWarning = document.getElementById('delete-quote-warning');
 const btnCancelDeleteQuote = document.getElementById('btn-cancel-delete-quote');
 const btnConfirmDeleteQuote = document.getElementById('btn-confirm-delete-quote');
 
+// Модалка сохранения в плейлист
+const saveQuoteModal = document.getElementById('save-quote-modal');
+const saveQuoteContent = document.getElementById('save-quote-content');
+const closeSaveModalBtn = document.getElementById('close-save-modal-btn');
+const savePlaylistsLoading = document.getElementById('save-playlists-loading');
+const savePlaylistsList = document.getElementById('save-playlists-list');
+const createPlaylistForm = document.getElementById('create-playlist-form');
+const newPlaylistName = document.getElementById('new-playlist-name');
+
 // Профиль Drawer & Настройки
 const profileDrawer = document.getElementById('profile-drawer');
 const profileDrawerOverlay = document.getElementById('profile-drawer-overlay');
@@ -136,8 +145,17 @@ const profileGreeting = document.getElementById('profile-greeting');
 const userQuotesList = document.getElementById('user-quotes-list');
 const drawerLogoutBtn = document.getElementById('drawer-logout-btn');
 const openSettingsBtn = document.getElementById('open-settings-btn');
+
 const tabMyQuotes = document.getElementById('tab-my-quotes');
 const tabLikedQuotes = document.getElementById('tab-liked-quotes');
+const tabPlaylists = document.getElementById('tab-playlists');
+
+const quotesView = document.getElementById('quotes-view');
+const playlistsView = document.getElementById('playlists-view');
+const playlistsList = document.getElementById('playlists-list');
+const playlistHeader = document.getElementById('playlist-header');
+const backToPlaylistsBtn = document.getElementById('back-to-playlists-btn');
+const currentPlaylistTitle = document.getElementById('current-playlist-title');
 
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -588,27 +606,47 @@ closeAuthModalBtn.addEventListener('click', closeAuthModal);
 
 
 // ==========================================
-// ШТОРКА ПРОФИЛЯ
+// ШТОРКА ПРОФИЛЯ И ПЛЕЙЛИСТЫ
 // ==========================================
+
+function updateProfileTabs(activeTabId) {
+    [tabMyQuotes, tabLikedQuotes, tabPlaylists].forEach(tab => {
+        tab.classList.replace('text-white', 'text-white/40');
+        tab.classList.replace('border-purple-500', 'border-transparent');
+    });
+    const activeBtn = document.getElementById(activeTabId);
+    activeBtn.classList.replace('text-white/40', 'text-white');
+    activeBtn.classList.replace('border-transparent', 'border-purple-500');
+    
+    playlistHeader.classList.add('hidden');
+    if (activeTabId === 'tab-playlists') {
+        quotesView.classList.add('hidden');
+        playlistsView.classList.remove('hidden');
+    } else {
+        playlistsView.classList.add('hidden');
+        quotesView.classList.remove('hidden');
+    }
+}
 
 tabMyQuotes.addEventListener('click', () => {
     if (currentProfileTab === 'my_quotes') return;
     currentProfileTab = 'my_quotes';
-    tabMyQuotes.classList.replace('text-white/40', 'text-white');
-    tabMyQuotes.classList.replace('border-transparent', 'border-purple-500');
-    tabLikedQuotes.classList.replace('text-white', 'text-white/40');
-    tabLikedQuotes.classList.replace('border-purple-500', 'border-transparent');
+    updateProfileTabs('tab-my-quotes');
     loadUserQuotes();
 });
 
 tabLikedQuotes.addEventListener('click', () => {
     if (currentProfileTab === 'liked_quotes') return;
     currentProfileTab = 'liked_quotes';
-    tabLikedQuotes.classList.replace('text-white/40', 'text-white');
-    tabLikedQuotes.classList.replace('border-transparent', 'border-purple-500');
-    tabMyQuotes.classList.replace('text-white', 'text-white/40');
-    tabMyQuotes.classList.replace('border-purple-500', 'border-transparent');
+    updateProfileTabs('tab-liked-quotes');
     loadLikedQuotes();
+});
+
+tabPlaylists.addEventListener('click', () => {
+    if (currentProfileTab === 'playlists') return;
+    currentProfileTab = 'playlists';
+    updateProfileTabs('tab-playlists');
+    loadPlaylistsList();
 });
 
 async function loadUserQuotes() {
@@ -626,7 +664,7 @@ async function loadUserQuotes() {
     }
 
     myQuotesCache = data; 
-    renderQuoteList(data, true);
+    renderQuoteList(data, 'my_quotes');
 }
 
 async function loadLikedQuotes() {
@@ -644,10 +682,76 @@ async function loadLikedQuotes() {
     }
 
     const quotes = data.map(item => item.quotes).filter(q => q !== null);
-    renderQuoteList(quotes, false);
+    renderQuoteList(quotes, 'liked_quotes');
 }
 
-function renderQuoteList(data, isMyQuotes) {
+async function loadPlaylistsList() {
+    playlistsList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
+    
+    const { data, error } = await supabase
+        .from('playlists')
+        .select('id, name, is_default, playlist_items(quote_id)')
+        .eq('user_id', currentUser.id)
+        .order('created_at');
+        
+    if (error || !data) {
+        playlistsList.innerHTML = '<div class="text-red-400 text-sm text-center mt-10">Ошибка загрузки</div>';
+        return;
+    }
+    
+    playlistsList.innerHTML = '';
+    data.forEach(pl => {
+        const count = pl.playlist_items ? pl.playlist_items.length : 0;
+        const icon = pl.is_default ? '⭐' : '📁';
+        
+        const card = document.createElement('div');
+        card.className = 'flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors group';
+        card.innerHTML = `
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-xl shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                    ${icon}
+                </div>
+                <div>
+                    <h4 class="text-white font-bold text-sm tracking-wide">${pl.name}</h4>
+                    <span class="text-white/40 text-xs">${count} фраз</span>
+                </div>
+            </div>
+            <svg class="w-5 h-5 text-white/20 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        `;
+        card.onclick = () => openPlaylistDetail(pl.id, pl.name);
+        playlistsList.appendChild(card);
+    });
+}
+
+async function openPlaylistDetail(playlistId, playlistName) {
+    playlistsView.classList.add('hidden');
+    quotesView.classList.remove('hidden');
+    playlistHeader.classList.remove('hidden');
+    currentPlaylistTitle.textContent = playlistName;
+    
+    userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Загрузка...</div>';
+    
+    const { data, error } = await supabase
+        .from('playlist_items')
+        .select('quote_id, quotes (id, text, author, category)')
+        .eq('playlist_id', playlistId)
+        .order('added_at', { ascending: false });
+        
+    if (error || !data || data.length === 0) {
+        userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Папка пуста</div>';
+        return;
+    }
+    
+    const quotes = data.map(item => item.quotes).filter(q => q !== null);
+    renderQuoteList(quotes, 'playlist', playlistId);
+}
+
+backToPlaylistsBtn.addEventListener('click', () => {
+    updateProfileTabs('tab-playlists');
+    loadPlaylistsList();
+});
+
+function renderQuoteList(data, context, playlistId = null) {
     userQuotesList.innerHTML = '';
     data.forEach(quote => {
         let statusHtml = '';
@@ -657,13 +761,12 @@ function renderQuoteList(data, isMyQuotes) {
         let editBtnHtml = '';
         let likesHtml = '';
 
-        if (isMyQuotes) {
+        if (context === 'my_quotes') {
             let statusIcon, statusColor, statusText;
             const currentStatus = quote.status || (quote.is_approved ? 'approved' : 'pending');
 
             if (currentStatus === 'approved') {
                 statusIcon = '✅'; statusColor = 'text-green-400'; statusText = 'Одобрено';
-                
                 likesHtml = `
                     <div class="flex items-center gap-1.5 text-white/40 bg-white/5 px-2 py-1 rounded-md">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-red-500/80"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" /></svg>
@@ -698,6 +801,20 @@ function renderQuoteList(data, isMyQuotes) {
                     </button>
                 `;
             }
+        } else if (context === 'playlist') {
+            statusHtml = `<span class="text-white/50">© ${quote.author || 'Неизвестен'}</span>`;
+            deleteBtnHtml = `
+                <button class="remove-from-playlist-btn absolute top-3 right-3 text-white/20 hover:text-orange-400 transition-colors" data-quote-id="${quote.id}" data-playlist-id="${playlistId}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            `;
+        } else if (context === 'liked_quotes') {
+            statusHtml = `<span class="text-white/50">© ${quote.author || 'Неизвестен'}</span>`;
+            deleteBtnHtml = `
+                <button class="remove-liked-btn absolute top-3 right-3 text-white/20 hover:text-red-400 transition-colors" data-quote-id="${quote.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            `;
         } else {
             statusHtml = `<span class="text-white/50">© ${quote.author || 'Неизвестен'}</span>`;
         }
@@ -724,13 +841,16 @@ function renderQuoteList(data, isMyQuotes) {
 }
 
 userQuotesList.addEventListener('click', (e) => {
+    // 1. Обработка удаления своей предложенной цитаты (полностью с сайта)
     const deleteBtn = e.target.closest('.delete-quote-btn');
     if (deleteBtn) {
         const quoteId = deleteBtn.dataset.id;
         const isApproved = deleteBtn.dataset.approved === 'true';
         openDeleteQuoteModal(quoteId, isApproved);
+        return;
     }
     
+    // 2. Обработка редактирования своей цитаты
     const editBtn = e.target.closest('.edit-quote-btn');
     if (editBtn) {
         const quoteId = editBtn.dataset.id;
@@ -739,6 +859,47 @@ userQuotesList.addEventListener('click', (e) => {
             closeProfileDrawer();
             setTimeout(() => openQuoteModal(quoteToEdit), 300);
         }
+        return;
+    }
+
+    // 3. Обработка удаления из плейлиста
+    const removePlBtn = e.target.closest('.remove-from-playlist-btn');
+    if (removePlBtn) {
+        const qId = removePlBtn.dataset.quoteId;
+        const pId = removePlBtn.dataset.playlistId;
+        
+        const quoteCard = removePlBtn.closest('.bg-white\\/5');
+        if (quoteCard) quoteCard.remove();
+        
+        supabase.from('playlist_items').delete().match({ playlist_id: pId, quote_id: qId }).then();
+        
+        if (userQuotesList.children.length === 0) {
+            userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Папка пуста</div>';
+        }
+        return;
+    }
+
+    // 4. Обработка удаления из лайков (вкладка "Понравилось")
+    const removeLikedBtn = e.target.closest('.remove-liked-btn');
+    if (removeLikedBtn) {
+        const qId = parseInt(removeLikedBtn.dataset.quoteId);
+        
+        const quoteCard = removeLikedBtn.closest('.bg-white\\/5');
+        if (quoteCard) quoteCard.remove();
+        
+        likedQuotes.delete(qId);
+        
+        if (currentQuoteObj && currentQuoteObj.id === qId) {
+            currentQuoteObj.likes_count = Math.max(0, (currentQuoteObj.likes_count || 0) - 1);
+            updateLikesUI();
+        }
+        
+        supabase.from('likes').delete().match({ user_id: currentUser.id, quote_id: qId }).then();
+        
+        if (userQuotesList.children.length === 0) {
+            userQuotesList.innerHTML = '<div class="text-white/30 text-sm text-center mt-10">Вы еще ничего не лайкнули</div>';
+        }
+        return;
     }
 });
 
@@ -750,7 +911,8 @@ function openProfileDrawer() {
     }, 10);
     
     if (currentProfileTab === 'my_quotes') loadUserQuotes();
-    else loadLikedQuotes();
+    else if (currentProfileTab === 'liked_quotes') loadLikedQuotes();
+    else loadPlaylistsList();
 }
 
 function closeProfileDrawer() {
@@ -1039,8 +1201,6 @@ async function fetchOneQuote(retryCount = 0) {
 function updateQuoteUI(quoteObj) {
     currentQuoteObj = quoteObj;
     
-    // ЖЕСТКАЯ ОПТИМИЗАЦИЯ: Убрали transition-all. 
-    // Текст меняет размер моментально, пока он невидим (opacity: 0).
     if (quoteObj.text.length > 70) {
         quoteText.className = "text-2xl md:text-4xl lg:text-5xl font-black leading-tight text-white pb-2 break-words";
     } else {
@@ -1057,7 +1217,6 @@ function updateQuoteUI(quoteObj) {
 
     updateLikesUI();
 
-    // Даем браузеру миллисекунду на пересчет макета ДО начала анимации
     requestAnimationFrame(() => {
         quoteWrapper.classList.remove('fade-out', 'initial-hidden');
         quoteWrapper.classList.add('fade-in');
@@ -1107,10 +1266,95 @@ likeBtn.addEventListener('click', async (e) => {
     }
 });
 
+// МОДАЛКА СОХРАНЕНИЯ (ПЛЕЙЛИСТЫ)
+async function openSaveModal() {
+    saveQuoteModal.classList.remove('hidden');
+    setTimeout(() => {
+        saveQuoteModal.classList.remove('opacity-0');
+        saveQuoteContent.classList.remove('scale-95');
+        saveQuoteContent.classList.add('scale-100');
+    }, 10);
+    
+    savePlaylistsLoading.classList.remove('hidden');
+    savePlaylistsList.innerHTML = '';
+    
+    const [plRes, itemsRes] = await Promise.all([
+        supabase.from('playlists').select('id, name').eq('user_id', currentUser.id).order('created_at'),
+        supabase.from('playlist_items').select('playlist_id').eq('quote_id', currentQuoteObj.id)
+    ]);
+    
+    savePlaylistsLoading.classList.add('hidden');
+    
+    if (plRes.error) return showToast("Ошибка загрузки папок", "error");
+    
+    const activePlaylists = new Set(itemsRes.data?.map(i => i.playlist_id) || []);
+    
+    plRes.data.forEach(pl => {
+        const isActive = activePlaylists.has(pl.id);
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left p-3 rounded-xl flex items-center justify-between transition-colors ${isActive ? 'bg-purple-500/20 border border-purple-500 text-white' : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'}`;
+        btn.innerHTML = `<span class="font-medium">${pl.name}</span><span class="text-lg font-bold">${isActive ? '✓' : '+'}</span>`;
+        
+        btn.onclick = async () => {
+            const willBeActive = !btn.classList.contains('bg-purple-500/20');
+            if (willBeActive) {
+                btn.className = 'w-full text-left p-3 rounded-xl flex items-center justify-between transition-colors mb-2 bg-purple-500/20 border border-purple-500 text-white';
+                btn.innerHTML = `<span class="font-medium">${pl.name}</span><span class="text-lg font-bold">✓</span>`;
+                await supabase.from('playlist_items').insert([{ playlist_id: pl.id, quote_id: currentQuoteObj.id }]);
+            } else {
+                btn.className = 'w-full text-left p-3 rounded-xl flex items-center justify-between transition-colors mb-2 bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white';
+                btn.innerHTML = `<span class="font-medium">${pl.name}</span><span class="text-lg font-bold">+</span>`;
+                await supabase.from('playlist_items').delete().match({ playlist_id: pl.id, quote_id: currentQuoteObj.id });
+            }
+        };
+        savePlaylistsList.appendChild(btn);
+    });
+}
+
+function closeSaveModal() {
+    saveQuoteModal.classList.add('opacity-0');
+    saveQuoteContent.classList.remove('scale-100');
+    saveQuoteContent.classList.add('scale-95');
+    setTimeout(() => {
+        saveQuoteModal.classList.add('hidden');
+    }, 300);
+}
+
 saveBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    showToast("Закладки и плейлисты появятся в следующем обновлении!", "success");
+    if (!currentUser) {
+        showToast("Войдите в аккаунт, чтобы сохранять фразы", "error");
+        openAuthModal();
+        return;
+    }
+    if (!currentQuoteObj || !currentQuoteObj.id) return;
+    openSaveModal();
 });
+
+closeSaveModalBtn.addEventListener('click', closeSaveModal);
+saveQuoteModal.addEventListener('click', (e) => {
+    if (e.target === saveQuoteModal) closeSaveModal();
+});
+
+createPlaylistForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = newPlaylistName.value.trim();
+    if(!name) return;
+    
+    const btn = createPlaylistForm.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = '...';
+    
+    const { error } = await supabase.from('playlists').insert([{ user_id: currentUser.id, name: name }]);
+    
+    btn.disabled = false;
+    btn.textContent = 'Создать';
+    newPlaylistName.value = '';
+    
+    if (error) return showToast("Ошибка создания", "error");
+    openSaveModal(); 
+});
+
 
 async function handleGenerate() {
     if (magicBtn.disabled) return;
